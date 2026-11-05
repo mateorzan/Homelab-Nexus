@@ -104,6 +104,7 @@ Build and run the Docker image locally:
 ```bash
 npm run build
 docker build -t homelab-nexus:local .
+IMAGE=homelab-nexus:local docker compose up -d
 ```
 
 ## API
