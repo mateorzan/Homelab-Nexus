@@ -1,0 +1,11 @@
+services:
+  homelab-nexus:
+    image: ghcr.io/mateorzan/homelab-nexus-public:latest
+    container_name: homelab-nexus
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data

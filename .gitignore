@@ -1,0 +1,13 @@
+node_modules/
+dist/
+.env
+.env.local
+secrets/
+data/
+*.log
+.DS_Store
+coverage/
+*.tsbuildinfo
+.e2e-data/
+test-results/
+playwright-report/

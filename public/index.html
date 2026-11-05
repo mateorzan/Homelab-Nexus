@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Homelab</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="bg-image" id="bg-image"></div>
+  <div class="bg-overlay"></div>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></svg></span>
+        <span class="brand-name">Homelab</span>
+      </div>
+      <div class="top-right">
+        <span id="live-indicator" class="live"><span class="pulse-dot"></span><span class="live-text"> en vivo</span></span>
+        <span id="last-update" class="updated"></span>
+        <div class="notif-wrap">
+          <button type="button" id="notif-btn" class="notif-btn" aria-label="Notificaciones">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span id="notif-badge" class="notif-badge" hidden>0</span>
+          </button>
+          <div id="notif-dropdown" class="notif-dropdown" hidden>
+            <div class="notif-header">
+              <span>Notificaciones</span>
+              <button type="button" id="notif-read-all" class="notif-header-btn" hidden>Marcar todas como leídas</button>
+            </div>
+            <div id="notif-list" class="notif-list"></div>
+          </div>
+        </div>
+        <div class="notif-wrap">
+          <button type="button" id="settings-btn" class="notif-btn" aria-label="Configuracion">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+          <div id="settings-dropdown" class="notif-dropdown settings-dropdown" hidden>
+            <div class="notif-header">Configuracion</div>
+            <div class="settings-body">
+              <label class="settings-label">Imagen de fondo</label>
+              <input id="bg-input" class="search" placeholder="URL de la imagen..." />
+              <label class="settings-upload">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <span>Subir archivo</span>
+                <input id="bg-file" type="file" accept="image/*" hidden />
+              </label>
+              <div class="settings-actions">
+                <button type="button" id="bg-apply" class="chip-chip active">Aplicar</button>
+                <button type="button" id="bg-clear" class="chip-chip">Quitar</button>
+                <button type="button" id="bg-save-preset" class="chip-chip">Guardar como preset</button>
+              </div>
+              <div id="bg-presets" class="bg-presets" hidden></div>
+              <label class="settings-label">Blur del fondo</label>
+              <div class="settings-blur">
+                <input id="bg-blur" type="range" min="0" max="30" value="20" />
+                <span id="blur-value">20px</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div id="status" class="pill"><span class="dot"></span><span id="status-text">Conectando…</span></div>
+      </div>
+    </header>
+
+    <!-- Hero: estado global + metricas clave -->
+    <section class="hero">
+      <div class="hero-left">
+        <div id="hero-status" class="hero-status">Cargando</div>
+      </div>
+      <div id="overview" class="hero-stats"></div>
+    </section>
+
+    <div id="error" class="loader" hidden></div>
+    <div id="loading" class="loader">Cargando estado del homelab…</div>
+
+    <div class="layout">
+      <aside id="bookmarks-wrap" class="bookmarks-panel">
+        <div class="section-head">
+          <h2>Links</h2>
+          <button type="button" id="bookmark-add" class="bookmark-add-btn" title="Añadir enlace">+</button>
+        </div>
+        <div id="bookmarks-list" class="bookmarks-list"></div>
+      </aside>
+
+      <main class="main">
+        <!-- Sistemas (Beszel) -->
+        <section id="beszel-wrap" class="block" hidden>
+          <div class="section-head"><h2>Sistemas</h2><span id="beszel-count" class="sub"></span></div>
+          <div id="beszel" class="nodes"></div>
+        </section>
+
+        <!-- Sistemas (Uptime Kuma) -->
+        <section id="kuma-wrap" class="block" hidden>
+          <div class="section-head"><h2>Monitores</h2><span id="kuma-count" class="sub"></span></div>
+          <div id="kuma" class="monitors"></div>
+        </section>
+      </main>
+
+      <!-- Gotify sidebar -->
+      <aside id="gotify-wrap" class="sidebar" hidden>
+        <div class="sidebar-resize sidebar-resize-left" id="gotify-resize"></div>
+        <div class="sidebar-resize sidebar-resize-bottom" id="gotify-resize-bottom"></div>
+        <div class="sidebar-inner">
+          <div class="section-head"><h2>Gotify</h2></div>
+          <div class="tools">
+            <input id="gotify-search" class="search" placeholder="Buscar…" />
+            <select id="gotify-priority-level" class="prio-select" aria-label="Filtrar por prioridad">
+              <option value="all">Prioridad: todas</option>
+              <option value="critical">Prioridad: críticas</option>
+              <option value="warning">Prioridad: alertas</option>
+              <option value="info">Prioridad: info</option>
+            </select>
+            <div id="gotify-filter" class="chips"></div>
+          </div>
+          <div id="gotify-msgs" class="msgs"></div>
+          <div id="gotify-empty" class="ok-empty" hidden>Sin mensajes en Gotify</div>
+        </div>
+      </aside>
+    </div>
+  </div>
+  <div id="app-version" class="app-version" title="Versión desplegada"></div>
+  <div id="svc-alert-banner" class="svc-alert-banner" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    <span id="svc-alert-text"></span>
+    <button type="button" id="svc-alert-close" class="svc-alert-close" aria-label="Cerrar">×</button>
+  </div>
+  <div id="notif-detail-popup" class="notif-detail-popup" hidden>
+    <div class="notif-detail-header">
+      <span id="notif-detail-title"></span>
+      <button type="button" class="notif-detail-close" aria-label="Cerrar">×</button>
+    </div>
+    <div id="notif-detail-body" class="notif-detail-body"></div>
+  </div>
+  <script src="/app.js?v=35"></script>
+</body>
+</html>
