@@ -12,12 +12,15 @@ Homelab Nexus combines **Beszel**, **Uptime Kuma**, and **Gotify** in a lightwei
 
 ## Features
 
-- Host metrics from Beszel and status/latency from Uptime Kuma.
-- Gotify messages and infrastructure alerts.
-- English and Spanish interface: detected from the browser language, with a selector in Settings. The choice is stored per browser.
-- Live updates over Server-Sent Events (SSE).
-- Persistent bookmarks, monitor links, alert states, and optional background settings.
-- Docker image runs as a non-root user and includes a health check.
+- **Everything in one view:** host metrics from Beszel, monitor status and latency from Uptime Kuma, and Gotify messages with infrastructure alerts.
+- **Live updates** over Server-Sent Events (SSE).
+- **Custom background:** use any image you like (URL or upload), set the blur level, and save as many backgrounds as you want to switch between them quickly.
+- **Resizable Gotify widget:** drag its edges to make it wider, narrower or taller to suit your layout. The size is remembered in your browser.
+- **Links / bookmarks:** a dedicated section where you can add any links you want, with custom labels and icons.
+- **Alerts you can manage:** mark them as read or resolved, and review resolved ones later.
+- **English and Spanish interface:** detected from the browser language, with a selector in Settings. The choice is stored per browser.
+- **Persistent data:** bookmarks, monitor links, alert states and background settings are kept in the data directory.
+- **Docker-ready:** the image runs as a non-root user and includes a health check; multi-arch (`amd64` and `arm64`).
 
 ## Quick start with Docker Compose
 
