@@ -1,7 +1,128 @@
 (function () {
   'use strict';
 
-  const STATUS_LABEL = { ok: 'Todo OK', warning: 'Atención', critical: 'Crítico', unknown: 'Cargando' };
+  const LANGUAGE_KEY = 'homelab-nexus-language';
+  const COPY = {
+    es: {
+      live: ' en vivo', reconnecting: ' reconectando…', offline: ' sin conexión',
+      notifications: 'Notificaciones', markAllRead: 'Marcar todas como leídas', settings: 'Configuración', language: 'Idioma',
+      backgroundImage: 'Imagen de fondo', backgroundUrlPlaceholder: 'URL de la imagen...', uploadFile: 'Subir archivo',
+      apply: 'Aplicar', remove: 'Quitar', savePreset: 'Guardar como preset', backgroundBlur: 'Desenfoque del fondo',
+      loading: 'Cargando…', loadingDashboard: 'Cargando estado del homelab…', links: 'Enlaces', addLink: 'Añadir enlace',
+      systems: 'Sistemas', monitors: 'Monitores', searchPlaceholder: 'Buscar…', filterByPriority: 'Filtrar por prioridad',
+      priorityAll: 'Prioridad: todas', priorityCritical: 'Prioridad: críticas', priorityWarning: 'Prioridad: alertas', priorityInfo: 'Prioridad: info',
+      noGotifyMessages: 'Sin mensajes en Gotify', deployedVersion: 'Versión desplegada', close: 'Cerrar',
+      allGood: 'Todo OK', attention: 'Atención', critical: 'Crítico', unknown: 'Cargando',
+      statSystems: 'Sistemas', statCpu: 'CPU', statRam: 'RAM', statMonitors: 'Monitores', statMessages: 'Mensajes', statAlerts: 'Alertas',
+      nodeCount: '{count} nodos', nodesDown: '{count} caídos', monitorCount: '{count} monitores', monitorsDown: '{count} caídos',
+      uptime24: 'Disponibilidad 24 h: {value}%', ping: 'Ping: {value} ms', statusUp: 'Activo', statusDown: 'Caído',
+      statusPending: 'Pendiente', statusMaintenance: 'Mantenimiento', statusUnknown: 'Desconocido',
+      statusUpShort: 'ACTIVO', statusDownShort: 'CAÍDO', statusPendingShort: 'PEND.', statusMaintenanceShort: 'MANT.', statusUnknownShort: 'N/D',
+      open: 'Abrir', alertCritical: 'Crítico', alertWarning: 'Alerta', alertInfo: 'Info', noTitle: 'Sin título',
+      restoreAlert: 'Restaurar (vuelve a la lista)', markUnread: 'Marcar como no leída', markResolved: 'Marcar como resuelta', markRead: 'Marcar como leída',
+      noNotifications: 'Sin notificaciones', noActiveNotifications: 'Sin notificaciones activas', resolvedCount: 'Resueltas ({count})',
+      clear: 'Limpiar', confirmClearResolved: '¿Borrar todas las resueltas?', allApps: 'Todas las apps',
+      priorityCriticalBadge: 'CRÍTICO', priorityWarningBadge: 'ALERTA', priorityInfoBadge: 'INFO',
+      noMatchingMessages: 'No hay mensajes que coincidan', noTitleMessage: 'Sin título', showLess: 'Ver menos', showMore: 'Ver más',
+      loadMore: 'Cargar más ({count} restantes)', staleSince: 'Última lectura hace {time}', timeNow: 'ahora',
+      updatedAgo: 'Actualizado hace {time}', offlineSince: ' (sin conexión)',
+      oneServiceDown: '{names} no responde. Sin este servicio, el dashboard no muestra datos.',
+      manyServicesDown: '{names} no responden. Sin estos servicios, el dashboard no muestra datos.',
+      loadError: 'No se pudo cargar el estado: {error}', backgroundPrompt: 'Nombre para este fondo:', backgroundName: 'Fondo {count}',
+      infrastructure: 'Infraestructura', nodeDownMessage: 'El nodo {name} de Beszel esta caido', serviceUnresponsive: '{name} no responde ({detail})',
+      label: 'Etiqueta', add: '+ Agregar', save: 'Guardar', emojis: 'Emojis', searchEmoji: 'Buscar emoji...',
+      services: 'Servicios', searchService: 'Buscar servicio...', noIcon: 'Sin icono', uploadPng: 'Subir PNG', title: 'Título', url: 'URL', cancel: 'Cancelar',
+    },
+    en: {
+      live: ' live', reconnecting: ' reconnecting…', offline: ' offline',
+      notifications: 'Notifications', markAllRead: 'Mark all as read', settings: 'Settings', language: 'Language',
+      backgroundImage: 'Background image', backgroundUrlPlaceholder: 'Image URL...', uploadFile: 'Upload file',
+      apply: 'Apply', remove: 'Remove', savePreset: 'Save as preset', backgroundBlur: 'Background blur',
+      loading: 'Loading…', loadingDashboard: 'Loading homelab status…', links: 'Links', addLink: 'Add link',
+      systems: 'Systems', monitors: 'Monitors', searchPlaceholder: 'Search…', filterByPriority: 'Filter by priority',
+      priorityAll: 'Priority: all', priorityCritical: 'Priority: critical', priorityWarning: 'Priority: alerts', priorityInfo: 'Priority: info',
+      noGotifyMessages: 'No Gotify messages', deployedVersion: 'Deployed version', close: 'Close',
+      allGood: 'All good', attention: 'Attention', critical: 'Critical', unknown: 'Loading',
+      statSystems: 'Systems', statCpu: 'CPU', statRam: 'RAM', statMonitors: 'Monitors', statMessages: 'Messages', statAlerts: 'Alerts',
+      nodeCount: '{count} nodes', nodesDown: '{count} down', monitorCount: '{count} monitors', monitorsDown: '{count} down',
+      uptime24: 'Uptime 24h: {value}%', ping: 'Ping: {value} ms', statusUp: 'Up', statusDown: 'Down',
+      statusPending: 'Pending', statusMaintenance: 'Maintenance', statusUnknown: 'Unknown',
+      statusUpShort: 'UP', statusDownShort: 'DOWN', statusPendingShort: 'PENDING', statusMaintenanceShort: 'MAINT.', statusUnknownShort: 'N/A',
+      open: 'Open', alertCritical: 'Critical', alertWarning: 'Warning', alertInfo: 'Info', noTitle: 'Untitled',
+      restoreAlert: 'Restore (move back to active)', markUnread: 'Mark as unread', markResolved: 'Mark as resolved', markRead: 'Mark as read',
+      noNotifications: 'No notifications', noActiveNotifications: 'No active notifications', resolvedCount: 'Resolved ({count})',
+      clear: 'Clear', confirmClearResolved: 'Clear all resolved alerts?', allApps: 'All apps',
+      priorityCriticalBadge: 'CRITICAL', priorityWarningBadge: 'ALERT', priorityInfoBadge: 'INFO',
+      noMatchingMessages: 'No matching messages', noTitleMessage: 'Untitled', showLess: 'Show less', showMore: 'Show more',
+      loadMore: 'Load more ({count} remaining)', staleSince: 'Last reading {time} ago', timeNow: 'now',
+      updatedAgo: 'Updated {time} ago', offlineSince: ' (offline)',
+      oneServiceDown: '{names} is unavailable. The dashboard needs this service to show data.',
+      manyServicesDown: '{names} are unavailable. The dashboard needs these services to show data.',
+      loadError: 'Could not load status: {error}', backgroundPrompt: 'Name this background:', backgroundName: 'Background {count}',
+      infrastructure: 'Infrastructure', nodeDownMessage: 'Beszel node {name} is down', serviceUnresponsive: '{name} is not responding ({detail})',
+      label: 'Label', add: '+ Add', save: 'Save', emojis: 'Emojis', searchEmoji: 'Search emoji...',
+      services: 'Services', searchService: 'Search service...', noIcon: 'No icon', uploadPng: 'Upload PNG', title: 'Title', url: 'URL', cancel: 'Cancel',
+    },
+  };
+
+  function detectLanguage() {
+    try {
+      const saved = localStorage.getItem(LANGUAGE_KEY);
+      if (saved === 'es' || saved === 'en') return saved;
+    } catch { /* use browser locale */ }
+    return /^es(?:-|$)/i.test(navigator.language || '') ? 'es' : 'en';
+  }
+
+  let currentLanguage = detectLanguage();
+
+  function t(key, values = {}) {
+    const template = COPY[currentLanguage][key] || COPY.en[key] || key;
+    return template.replace(/\{(\w+)\}/g, (_, name) => String(values[name] ?? ''));
+  }
+
+  function applyStaticTranslations() {
+    document.documentElement.lang = currentLanguage;
+    document.querySelectorAll('[data-i18n]').forEach((node) => { node.textContent = t(node.dataset.i18n); });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach((node) => { node.placeholder = t(node.dataset.i18nPlaceholder); });
+    document.querySelectorAll('[data-i18n-title]').forEach((node) => { node.title = t(node.dataset.i18nTitle); });
+    document.querySelectorAll('[data-i18n-aria]').forEach((node) => { node.setAttribute('aria-label', t(node.dataset.i18nAria)); });
+    const select = document.getElementById('language-select');
+    if (select) select.value = currentLanguage;
+  }
+
+  function setLanguage(language) {
+    if (language !== 'es' && language !== 'en') return;
+    currentLanguage = language;
+    try { localStorage.setItem(LANGUAGE_KEY, language); } catch { /* keep language for this page */ }
+    applyStaticTranslations();
+    if (lastSummary) render(lastSummary);
+    else {
+      const label = document.getElementById('status-text');
+      if (label) label.textContent = t('loading');
+    }
+  }
+
+  applyStaticTranslations();
+  const languageSelect = document.getElementById('language-select');
+  if (languageSelect) languageSelect.addEventListener('change', () => setLanguage(languageSelect.value));
+
+  const STATUS_LABEL = { ok: 'allGood', warning: 'attention', critical: 'critical', unknown: 'unknown' };
+
+  // El servidor genera estas alertas de infraestructura en español; se
+  // traducen aquí según el idioma del navegador. Cualquier otro texto
+  // (p. ej. mensajes de Gotify) se muestra tal cual.
+  function localizeAlertSource(source) {
+    return String(source ?? '').replace(/^Infraestructura(?= ·|$)/, () => t('infrastructure'));
+  }
+
+  function localizeAlertMessage(message) {
+    const text = String(message ?? '');
+    const node = text.match(/^El nodo (.+) de Beszel esta caido$/);
+    if (node) return t('nodeDownMessage', { name: node[1] });
+    const svc = text.match(/^(.+?) no responde \((.*)\)$/);
+    if (svc) return t('serviceUnresponsive', { name: svc[1], detail: svc[2] });
+    return text;
+  }
 
   const ICONS = {
     server: '<rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/>',
@@ -50,9 +171,9 @@
 
   function dot(status) { return el('span', 'dot ' + (status || 'unknown')); }
 
-  function timeAgo(t) {
-    const s = Math.max(0, Math.floor((Date.now() - t) / 1000));
-    if (s < 5) return 'ahora';
+  function timeAgo(timestamp) {
+    const s = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+    if (s < 5) return t('timeNow');
     if (s < 60) return s + 's';
     const m = Math.floor(s / 60);
     if (m < 60) return m + 'm';
@@ -86,7 +207,7 @@
       const active = nodes.filter((n) => n.status !== 'down');
       const avgCpu = active.length ? active.reduce((s, n) => s + (n.cpu ?? 0), 0) / active.length : 0;
       const avgMem = active.length ? active.reduce((s, n) => s + (n.mem ?? 0), 0) / active.length : 0;
-      stats.push(hstat('Sistemas', (nodes.length - down) + '/' + nodes.length, down ? 'crit' : 'ok'));
+      stats.push(hstat(t('statSystems'), (nodes.length - down) + '/' + nodes.length, down ? 'crit' : 'ok'));
       stats.push(hstat('CPU', fmt(avgCpu, '%'), tone(avgCpu)));
       stats.push(hstat('RAM', fmt(avgMem, '%'), tone(avgMem)));
     }
@@ -94,17 +215,17 @@
     if (kuma) {
       const mons = kuma.monitors || [];
       const down = mons.filter((m) => m.status === 'down').length;
-      stats.push(hstat('Monitores', (mons.length - down) + '/' + mons.length, down ? 'crit' : 'ok'));
+      stats.push(hstat(t('statMonitors'), (mons.length - down) + '/' + mons.length, down ? 'crit' : 'ok'));
     }
     const gotify = byId(summary.services, 'gotify')?.metrics;
     if (gotify) {
       const crit = gotify.messages.filter((m) => m.priority >= 8).length;
-      stats.push(hstat('Mensajes', String(gotify.totalMessages), crit ? 'crit' : 'ok'));
+      stats.push(hstat(t('statMessages'), String(gotify.totalMessages), crit ? 'crit' : 'ok'));
     }
     const alerts = summary.alerts || [];
     const unreadAl = alerts.filter((a) => a.state !== 'read');
     const critAl = unreadAl.filter((a) => a.level === 'critical').length;
-    stats.push(hstat('Alertas', String(unreadAl.length), critAl ? 'crit' : unreadAl.length ? 'warn' : 'ok'));
+    stats.push(hstat(t('statAlerts'), String(unreadAl.length), critAl ? 'crit' : unreadAl.length ? 'warn' : 'ok'));
 
     stats.forEach((s) => box.appendChild(s));
   }
@@ -130,7 +251,7 @@
     box.textContent = '';
     const systems = metrics?.systems || [];
     const down = systems.filter((n) => n.status === 'down').length;
-    document.getElementById('beszel-count').textContent = systems.length + ' nodos' + (down ? ' · ' + down + ' caídos' : '');
+    document.getElementById('beszel-count').textContent = t('nodeCount', { count: systems.length }) + (down ? ' · ' + t('nodesDown', { count: down }) : '');
 
     for (const s of systems) {
       const node = el('div', 'node');
@@ -259,7 +380,7 @@
       return;
     }
     const down = monitors.filter((m) => m.status === 'down').length;
-    document.getElementById('kuma-count').textContent = monitors.length + ' monitores' + (down ? ' · ' + down + ' caídos' : '');
+    document.getElementById('kuma-count').textContent = t('monitorCount', { count: monitors.length }) + (down ? ' · ' + t('monitorsDown', { count: down }) : '');
 
     const existing = box.querySelectorAll('.monitor');
     const existingMap = {};
@@ -302,7 +423,7 @@
           if (e.target.closest('.monitor-cfg') || e.target.closest('.monitor-cfg-popup')) return;
           if (menu.contains(e.target)) return;
           const cur = monitorUrlsData[m.name] || [];
-          const all = cur.length ? cur : (m.url ? [{ label: 'Abrir', url: m.url }] : []);
+          const all = cur.length ? cur : (m.url ? [{ label: t('open'), url: m.url }] : []);
           if (!all.length) return;
           if (all.length === 1) {
             window.open(all[0].url, '_blank', 'noopener');
@@ -326,14 +447,14 @@
       if (dotEl) dotEl.className = 'dot ' + m.status;
 
       const uptimeEl = row.querySelector('.monitor-uptime');
-      if (uptimeEl) uptimeEl.textContent = m.uptime24h != null ? 'Uptime 24h: ' + m.uptime24h.toFixed(2) + '%' : '';
+      if (uptimeEl) uptimeEl.textContent = m.uptime24h != null ? t('uptime24', { value: m.uptime24h.toFixed(2) }) : '';
 
       const latencyEl = row.querySelector('.monitor-latency');
-      if (latencyEl) latencyEl.textContent = m.latency != null ? 'Ping: ' + Math.round(m.latency) + 'ms' : '';
+      if (latencyEl) latencyEl.textContent = m.latency != null ? t('ping', { value: Math.round(m.latency) }) : '';
 
       const badge = row.querySelector('.monitor-badge');
       if (badge) {
-        const badgeLabel = m.status === 'up' ? 'UP' : m.status === 'down' ? 'DOWN' : m.status === 'pending' ? 'PEND' : m.status === 'maintenance' ? 'MANT' : 'N/D';
+        const badgeLabel = ({ up: t('statusUpShort'), down: t('statusDownShort'), pending: t('statusPendingShort'), maintenance: t('statusMaintenanceShort') })[m.status] || t('statusUnknownShort');
         badge.textContent = badgeLabel;
         badge.className = 'monitor-badge ' + (m.status || 'unknown');
       }
@@ -408,9 +529,9 @@
     const title = document.getElementById('notif-detail-title');
     const body = document.getElementById('notif-detail-body');
     popup.hidden = false;
-    title.textContent = a.source + ' — ' + (a.level === 'critical' ? 'Crítico' : a.level === 'warning' ? 'Alerta' : 'Info');
+    title.textContent = localizeAlertSource(a.source) + ' — ' + (a.level === 'critical' ? t('alertCritical') : a.level === 'warning' ? t('alertWarning') : t('alertInfo'));
     body.innerHTML = '';
-    const msgTitle = el('div', 'detail-msg-title', a.message || 'Sin título');
+    const msgTitle = el('div', 'detail-msg-title', localizeAlertMessage(a.message) || t('noTitle'));
     body.appendChild(msgTitle);
     const msgTime = el('div', 'detail-msg-time', new Date(a.time).toLocaleString('es'));
     body.appendChild(msgTime);
@@ -418,7 +539,7 @@
       const msgBody = el('div', 'detail-msg-body', a.fullMessage);
       body.appendChild(msgBody);
     } else {
-      const msgBody = el('div', 'detail-msg-body', a.message);
+      const msgBody = el('div', 'detail-msg-body', localizeAlertMessage(a.message));
       body.appendChild(msgBody);
     }
     notifDropdown.hidden = true;
@@ -465,19 +586,19 @@
     ico.appendChild(svgIcon(a.level === 'critical' ? 'critical' : a.level === 'warning' ? 'warning' : 'info'));
     row.appendChild(ico);
     const body = el('div', 'notif-item-body');
-    body.appendChild(el('div', 'notif-item-src', formatAppName(a.source)));
-    body.appendChild(el('div', 'notif-item-msg', a.message));
+    body.appendChild(el('div', 'notif-item-src', formatAppName(localizeAlertSource(a.source))));
+    body.appendChild(el('div', 'notif-item-msg', localizeAlertMessage(a.message)));
     row.appendChild(body);
     row.appendChild(el('span', 'notif-item-time', timeAgo(a.time)));
     const actions = el('div', 'notif-item-actions');
     if (resolved) {
-      actions.appendChild(actionBtn('undo', 'Restaurar (vuelve a la lista)', () => setAlertState(a.id, 'read')));
+      actions.appendChild(actionBtn('undo', t('restoreAlert'), () => setAlertState(a.id, 'read')));
     } else if (a.state === 'read') {
-      actions.appendChild(actionBtn('undo', 'Marcar como no leída', () => setAlertState(a.id, 'unread')));
-      actions.appendChild(actionBtn('checkDouble', 'Marcar como resuelta', () => setAlertState(a.id, 'resolved')));
+      actions.appendChild(actionBtn('undo', t('markUnread'), () => setAlertState(a.id, 'unread')));
+      actions.appendChild(actionBtn('checkDouble', t('markResolved'), () => setAlertState(a.id, 'resolved')));
     } else {
-      actions.appendChild(actionBtn('check', 'Marcar como leída', () => setAlertState(a.id, 'read')));
-      actions.appendChild(actionBtn('checkDouble', 'Marcar como resuelta', () => setAlertState(a.id, 'resolved')));
+      actions.appendChild(actionBtn('check', t('markRead'), () => setAlertState(a.id, 'read')));
+      actions.appendChild(actionBtn('checkDouble', t('markResolved'), () => setAlertState(a.id, 'resolved')));
     }
     row.appendChild(actions);
     activatable(row, (e) => {
@@ -501,17 +622,17 @@
     readAllBtn.hidden = !unread.length;
 
     if (!alerts.length && !resolvedAlerts.length) {
-      list.appendChild(el('div', 'notif-empty', 'Sin notificaciones'));
+      list.appendChild(el('div', 'notif-empty', t('noNotifications')));
       return;
     }
-    if (!alerts.length) list.appendChild(el('div', 'notif-empty', 'Sin notificaciones activas'));
+    if (!alerts.length) list.appendChild(el('div', 'notif-empty', t('noActiveNotifications')));
     for (const a of alerts) list.appendChild(alertRow(a, false));
 
     if (resolvedAlerts.length) {
       const sec = el('div', 'notif-resolved' + (resolvedOpen ? ' open' : ''));
       const head = el('button', 'notif-resolved-head');
       head.type = 'button';
-      head.textContent = 'Resueltas (' + resolvedAlerts.length + ')';
+      head.textContent = t('resolvedCount', { count: resolvedAlerts.length });
       head.addEventListener('click', (e) => {
         e.stopPropagation();
         resolvedOpen = !resolvedOpen;
@@ -520,10 +641,10 @@
       sec.appendChild(head);
       if (resolvedAlerts.length > 5) {
         const clearBtn = el('button', 'notif-resolved-clear');
-        clearBtn.textContent = 'Limpiar';
+        clearBtn.textContent = t('clear');
         clearBtn.addEventListener('click', (e) => {
           e.stopPropagation();
-          if (!confirm('¿Borrar todas las resueltas?')) return;
+          if (!confirm(t('confirmClearResolved'))) return;
           postJson('/api/alerts/clear-resolved', {})
             .then(() => { /* el server re-emite el resumen por SSE */ })
             .catch((err) => console.error('[alerts] no se pudieron limpiar:', err));
@@ -579,7 +700,7 @@
 
   function priorityBadge(p) {
     const lv = levelOf(p);
-    const label = lv === 'critical' ? 'CRÍTICO' : lv === 'warning' ? 'ALERTA' : 'INFO';
+    const label = lv === 'critical' ? t('priorityCriticalBadge') : lv === 'warning' ? t('priorityWarningBadge') : t('priorityInfoBadge');
     return el('span', 'prio ' + lv, label);
   }
 
@@ -614,7 +735,7 @@
       filterApp = 'all';
     }
     box.textContent = '';
-    box.appendChild(chipBtn('Todas las apps', filterApp === 'all', () => { filterApp = 'all'; refreshGotify(); }));
+    box.appendChild(chipBtn(t('allApps'), filterApp === 'all', () => { filterApp = 'all'; refreshGotify(); }));
     for (const a of metrics.apps || []) {
       const chip = chipBtn(formatAppName(a.name) + ' · ' + a.count, filterApp === String(a.id), () => { filterApp = String(a.id); refreshGotify(); });
       if (!a.count) chip.classList.add('muted');
@@ -649,7 +770,7 @@
       body.appendChild(top);
       const titleLine = el('div', 'msg-title');
       titleLine.appendChild(priorityBadge(m.priority));
-      titleLine.appendChild(el('span', 'msg-title-text', m.title || 'Sin título'));
+      titleLine.appendChild(el('span', 'msg-title-text', m.title || t('noTitleMessage')));
       body.appendChild(titleLine);
       if (m.message) {
         const long = m.message.length > 180;
@@ -657,11 +778,11 @@
         const txt = el('div', 'msg-text' + (long && !isExpanded ? ' collapsed' : ''), m.message);
         body.appendChild(txt);
         if (long) {
-          const toggle = el('button', 'msg-toggle', isExpanded ? 'Ver menos' : 'Ver más');
+          const toggle = el('button', 'msg-toggle', isExpanded ? t('showLess') : t('showMore'));
           toggle.addEventListener('click', () => {
             const collapsed = txt.classList.toggle('collapsed');
             if (collapsed) expandedMsgs.delete(m.id); else expandedMsgs.add(m.id);
-            toggle.textContent = collapsed ? 'Ver más' : 'Ver menos';
+            toggle.textContent = collapsed ? t('showMore') : t('showLess');
           });
           body.appendChild(toggle);
         }
@@ -670,7 +791,7 @@
       box.appendChild(row);
     }
     if (msgs.length > shown.length) {
-      const more = el('button', 'msg-toggle', 'Cargar más (' + (msgs.length - shown.length) + ' restantes)');
+      const more = el('button', 'msg-toggle', t('loadMore', { count: msgs.length - shown.length }));
       more.addEventListener('click', () => { msgLimit += MSG_STEP; renderGotifyMessages(gotifyMetrics); });
       box.appendChild(more);
     }
@@ -694,7 +815,7 @@
     }
     if (svc && svc.metricsStaleSince) {
       wrap.classList.add('stale');
-      note.textContent = 'última lectura hace ' + timeAgo(svc.metricsStaleSince);
+      note.textContent = t('staleSince', { time: timeAgo(svc.metricsStaleSince) });
       note.hidden = false;
     } else {
       wrap.classList.remove('stale');
@@ -714,9 +835,9 @@
     indicator.classList.toggle('offline', state === 'offline');
     const label = indicator.querySelector('.live-text');
     if (label) {
-      label.textContent = state === 'live' ? ' en vivo'
-        : state === 'reconnecting' ? ' reconectando…'
-        : ' sin conexión';
+      label.textContent = state === 'live' ? t('live')
+        : state === 'reconnecting' ? t('reconnecting')
+        : t('offline');
     }
   }
 
@@ -727,7 +848,7 @@
     const target = document.getElementById('last-update');
     if (target) {
       target.classList.toggle('stale', stale);
-      target.textContent = 'Actualizado hace ' + timeAgo(lastUpdated) + (stale ? ' (sin conexión)' : '');
+      target.textContent = t('updatedAgo', { time: timeAgo(lastUpdated) }) + (stale ? t('offlineSince') : '');
     }
     if (stale) setLive('offline');
   }
@@ -744,11 +865,11 @@
     const status = summary.overallStatus || 'unknown';
     const pill = document.getElementById('status');
     pill.className = 'pill ' + status;
-    document.getElementById('status-text').textContent = STATUS_LABEL[status] || status;
+    document.getElementById('status-text').textContent = STATUS_LABEL[status] ? t(STATUS_LABEL[status]) : status;
 
     const heroStatus = document.getElementById('hero-status');
     heroStatus.className = 'hero-status ' + status;
-    heroStatus.textContent = STATUS_LABEL[status] || status;
+    heroStatus.textContent = STATUS_LABEL[status] ? t(STATUS_LABEL[status]) : status;
 
     lastUpdated = summary.generatedAt || Date.now();
 
@@ -791,7 +912,7 @@
       return;
     }
     const names = down.map((s) => s.name).join(', ');
-    text.textContent = names + ' no responde. Sin estos servicios el dashboard no muestra datos.';
+    text.textContent = t(down.length === 1 ? 'oneServiceDown' : 'manyServicesDown', { names });
     banner.hidden = false;
     document.body.classList.add('svc-alert-visible');
   }
@@ -806,7 +927,7 @@
     document.getElementById('loading').hidden = true;
     const e = document.getElementById('error');
     e.hidden = false;
-    e.textContent = 'No se pudo cargar el estado: ' + (err && err.message ? err.message : err);
+    e.textContent = t('loadError', { error: err && err.message ? err.message : err });
   }
 
   function fetchOnce() {
@@ -1047,7 +1168,7 @@
   document.getElementById('bg-save-preset').addEventListener('click', () => {
     const url = document.getElementById('bg-input').value.trim();
     if (!url) return;
-    const name = prompt('Nombre para este fondo:', 'Fondo ' + (bgPresets.length + 1));
+    const name = prompt(t('backgroundPrompt'), t('backgroundName', { count: bgPresets.length + 1 }));
     if (!name) return;
     bgPresets.push({ name, url });
     saveBgPresets();
@@ -1067,7 +1188,7 @@
       const u = urls[i];
       const row = el('div', 'cfg-entry');
       const label = el('input', 'cfg-input cfg-label');
-      label.type = 'text'; label.value = u.label || ''; label.placeholder = 'Etiqueta';
+      label.type = 'text'; label.value = u.label || ''; label.placeholder = t('label');
       const url = el('input', 'cfg-input cfg-url');
       url.type = 'text'; url.value = u.url || ''; url.placeholder = 'https://...';
       const rm = el('button', 'cfg-rm', '×');
@@ -1081,7 +1202,7 @@
       entries.appendChild(row);
     }
     cfgPopup.appendChild(entries);
-    const addBtn = el('button', 'cfg-add', '+ Agregar');
+    const addBtn = el('button', 'cfg-add', t('add'));
     addBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       if (!monitorUrlsData[name]) monitorUrlsData[name] = [];
@@ -1089,14 +1210,14 @@
       renderCfgPopup(name);
     });
     cfgPopup.appendChild(addBtn);
-    const saveBtn = el('button', 'cfg-save', 'Guardar');
+    const saveBtn = el('button', 'cfg-save', t('save'));
     saveBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       const newUrls = [];
       entries.querySelectorAll('.cfg-entry').forEach((row2) => {
         const l = row2.querySelector('.cfg-label').value.trim();
         const u2 = row2.querySelector('.cfg-url').value.trim();
-        if (u2) newUrls.push({ label: l || 'Abrir', url: u2 });
+        if (u2) newUrls.push({ label: l || t('open'), url: u2 });
       });
       if (newUrls.length) monitorUrlsData[name] = newUrls; else delete monitorUrlsData[name];
       fetch('/api/monitor-urls', {
@@ -1190,10 +1311,10 @@
     let selectedIcon = '';
     const INITIAL_COUNT = 24;
 
-    const emojiLabel = el('div', 'icon-section-label', 'Emojis');
+    const emojiLabel = el('div', 'icon-section-label', t('emojis'));
     popup.appendChild(emojiLabel);
     const emojiSearch = el('input', 'cfg-input svc-search');
-    emojiSearch.type = 'text'; emojiSearch.placeholder = 'Buscar emoji...';
+    emojiSearch.type = 'text'; emojiSearch.placeholder = t('searchEmoji');
     popup.appendChild(emojiSearch);
     const emojiGrid = el('div', 'emoji-grid');
     popup.appendChild(emojiGrid);
@@ -1221,7 +1342,7 @@
       const q = emojiSearch.value.toLowerCase().trim();
       const total = q ? EMOJIS.filter((e) => e.includes(q)).length : EMOJIS.length;
       if (total > INITIAL_COUNT) {
-        const label = emojiShowAll ? `Ver menos` : `Ver más (${total - INITIAL_COUNT})`;
+        const label = emojiShowAll ? t('showLess') : `${t('showMore')} (${total - INITIAL_COUNT})`;
         emojiMoreBtn = el('button', 'show-more-btn', label);
         emojiGrid.parentElement.insertBefore(emojiMoreBtn, emojiGrid.nextSibling);
         emojiMoreBtn.addEventListener('click', (ev) => { ev.stopPropagation(); emojiShowAll = !emojiShowAll; renderEmojis(); renderServices(); });
@@ -1230,10 +1351,10 @@
     renderEmojis();
     emojiSearch.addEventListener('input', () => { emojiShowAll = false; renderEmojis(); });
 
-    const svcLabel = el('div', 'icon-section-label', 'Servicios');
+    const svcLabel = el('div', 'icon-section-label', t('services'));
     popup.appendChild(svcLabel);
     const svcSearch = el('input', 'cfg-input svc-search');
-    svcSearch.type = 'text'; svcSearch.placeholder = 'Buscar servicio...';
+    svcSearch.type = 'text'; svcSearch.placeholder = t('searchService');
     popup.appendChild(svcSearch);
     const svcGrid = el('div', 'emoji-grid');
     popup.appendChild(svcGrid);
@@ -1271,7 +1392,7 @@
       const q = svcSearch.value.toLowerCase().trim();
       const total = q ? SVC_ICONS.filter((s) => s.includes(q)).length : SVC_ICONS.length;
       if (total > INITIAL_COUNT) {
-        const label = svcShowAll ? `Ver menos` : `Ver más (${total - INITIAL_COUNT})`;
+        const label = svcShowAll ? t('showLess') : `${t('showMore')} (${total - INITIAL_COUNT})`;
         svcMoreBtn = el('button', 'show-more-btn', label);
         svcGrid.parentElement.insertBefore(svcMoreBtn, svcGrid.nextSibling);
         svcMoreBtn.addEventListener('click', (ev) => { ev.stopPropagation(); svcShowAll = !svcShowAll; renderEmojis(); renderServices(); });
@@ -1281,11 +1402,11 @@
     svcSearch.addEventListener('input', () => { svcShowAll = false; renderServices(); });
 
     const iconPreview = el('div', 'icon-preview');
-    iconPreview.textContent = 'Sin icono';
+    iconPreview.textContent = t('noIcon');
     popup.appendChild(iconPreview);
 
     const fileLabel = el('label', 'cfg-upload');
-    fileLabel.textContent = 'Subir PNG';
+    fileLabel.textContent = t('uploadPng');
     const fileInput = el('input');
     fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.hidden = true;
     fileInput.addEventListener('change', (ev) => {
@@ -1314,9 +1435,9 @@
     popup.appendChild(urlInput);
 
     const actions = el('div', 'bookmark-popup-actions');
-    const cancelBtn = el('button', 'cfg-rm', 'Cancelar');
+    const cancelBtn = el('button', 'cfg-rm', t('cancel'));
     cancelBtn.addEventListener('click', (ev) => { ev.stopPropagation(); popup.remove(); document.removeEventListener('click', closePopup); });
-    const saveBtn = el('button', 'cfg-save', 'Guardar');
+    const saveBtn = el('button', 'cfg-save', t('save'));
     saveBtn.addEventListener('click', (ev) => {
       ev.stopPropagation();
       const t = titleInput.value.trim();

@@ -87,5 +87,26 @@ export async function loadConfig(): Promise<{
   };
 }
 
+/**
+ * Beszel, Uptime Kuma y Gotify son imprescindibles: sin ellos el dashboard no
+ * tiene datos que mostrar. Devuelve que falta (URL o credenciales) de cada uno.
+ */
+export function missingRequiredSettings(
+  services: ServiceConfig[],
+  credentials: Record<string, string | undefined>,
+): string[] {
+  const has = (id: string) => services.some((s) => s.id === id);
+  const missing: string[] = [];
+  if (!has('beszel')) missing.push('BESZEL_URL');
+  else {
+    if (!credentials.beszelUserEmail) missing.push('BESZEL_USER_EMAIL');
+    if (!credentials.beszelUserPassword) missing.push('BESZEL_USER_PASSWORD');
+  }
+  if (!has('uptimekuma')) missing.push('UPTIMEKUMA_URL');
+  if (!has('gotify')) missing.push('GOTIFY_URL');
+  else if (!credentials.gotifyToken) missing.push('GOTIFY_TOKEN');
+  return missing;
+}
+
 export { requiredValue as resolveRequired };
 export { optionalValue as resolveOptional };

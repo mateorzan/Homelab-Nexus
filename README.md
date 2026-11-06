@@ -2,7 +2,9 @@
 
 > A self-hosted dashboard that brings your homelab services and monitoring into one place.
 
-Homelab Nexus combines **Beszel**, **Uptime Kuma**, and **Gotify** in a lightweight dashboard. It is built for Docker and can run with only the integrations you configure; no personal configuration or service data is included in the image.
+Homelab Nexus combines **Beszel**, **Uptime Kuma**, and **Gotify** in a lightweight dashboard. It is built for Docker; no personal configuration or service data is included in the image.
+
+> **Beszel, Uptime Kuma and Gotify are required.** Every metric, status and message in the dashboard comes from these three services, so without them there is nothing to show. The container still starts if one is missing, but logs a warning naming the missing settings. OPNsense is an optional, experimental integration.
 
 ![Homelab Nexus dashboard using synthetic demo data](image/README/demo.png)
 
@@ -12,6 +14,7 @@ Homelab Nexus combines **Beszel**, **Uptime Kuma**, and **Gotify** in a lightwei
 
 - Host metrics from Beszel and status/latency from Uptime Kuma.
 - Gotify messages and infrastructure alerts.
+- English and Spanish interface: detected from the browser language, with a selector in Settings. The choice is stored per browser.
 - Live updates over Server-Sent Events (SSE).
 - Persistent bookmarks, monitor links, alert states, and optional background settings.
 - Docker image runs as a non-root user and includes a health check.
@@ -24,7 +27,7 @@ Homelab Nexus combines **Beszel**, **Uptime Kuma**, and **Gotify** in a lightwei
    cp .env.example .env
    ```
 
-2. Edit `.env` and set the URLs and credentials for the services you want to display. Each integration is optional; a service is enabled when its URL is configured.
+2. Edit `.env` and set the URL and credentials of **Beszel, Uptime Kuma and Gotify** (all three are required).
 
 3. Start the dashboard:
 
@@ -50,6 +53,40 @@ The image can also be built locally from the repository:
 docker build -t homelab-nexus:local .
 ```
 
+### Choose how to provide your configuration
+
+You can provide settings in whichever way suits your setup; the app reads a Docker secret first and falls back to the environment variable of the same setting:
+
+| Option | Best for | How |
+|---|---|---|
+| `.env` file | Most home setups | `docker-compose.yml` with `env_file: .env` (above) |
+| Inline in the Compose file | A single self-contained `compose.yml` | Put the variables under `environment:` (example below) |
+| Docker Secrets | Shared servers | `docker-compose.secrets.yml` (next section) |
+
+Inline example (no `.env` or secret files needed):
+
+```yaml
+services:
+  homelab-nexus:
+    image: ghcr.io/mateorzan/homelab-nexus-public:latest
+    container_name: homelab-nexus
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      BESZEL_URL: http://beszel.example.local:8090
+      BESZEL_USER_EMAIL: readonly@example.local
+      BESZEL_USER_PASSWORD: change-me
+      UPTIMEKUMA_URL: http://uptime-kuma.example.local:3001
+      UPTIMEKUMA_STATUS_PAGE: /status/your-page
+      GOTIFY_URL: http://gotify.example.local:8081
+      GOTIFY_TOKEN: change-me
+    volumes:
+      - ./data:/app/data
+```
+
+Credentials written directly in a Compose file are readable by anyone with access to that file, so keep it private.
+
 ### Docker Secrets
 
 For a shared server, prefer Docker Secrets over putting credentials in `.env`. Create the files described in [`secrets.example/README.md`](secrets.example/README.md), then start the secrets-based Compose configuration:
@@ -69,12 +106,12 @@ Never commit `.env`, secret files, or your `data/` directory.
 | `POLL_INTERVAL_MS` | No | Poll interval in milliseconds (default `5000`). |
 | `ALLOWED_ORIGINS` | No | Comma-separated additional CORS origins, useful behind a reverse proxy. |
 | `DATA_DIR` | No | Persistent data directory (default `data/`). |
-| `BESZEL_URL` | No | Beszel hub URL; enables the Beszel integration. |
-| `BESZEL_USER_EMAIL` / `BESZEL_USER_PASSWORD` | For Beszel | Read-only Beszel account credentials. |
-| `UPTIMEKUMA_URL` | No | Uptime Kuma URL; enables the integration. |
-| `UPTIMEKUMA_STATUS_PAGE` | No | Optional public status-page slug. |
-| `GOTIFY_URL` | No | Gotify URL; enables the integration. |
-| `GOTIFY_TOKEN` | For Gotify | Gotify application/client token. |
+| `BESZEL_URL` | **Yes** | Beszel hub URL. |
+| `BESZEL_USER_EMAIL` / `BESZEL_USER_PASSWORD` | **Yes** | Read-only Beszel account credentials. |
+| `UPTIMEKUMA_URL` | **Yes** | Uptime Kuma URL. |
+| `UPTIMEKUMA_STATUS_PAGE` | Recommended | Public status-page slug (for example `/status/your-page`). |
+| `GOTIFY_URL` | **Yes** | Gotify URL. |
+| `GOTIFY_TOKEN` | **Yes** | Gotify application/client token. |
 | `OPNSENSE_URL` | No | Optional OPNsense URL (integration is currently a stub). |
 | `OPNSENSE_API_KEY` / `OPNSENSE_API_SECRET` | For OPNsense | Optional API credentials. |
 

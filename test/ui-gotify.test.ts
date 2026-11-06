@@ -98,6 +98,7 @@ function renderedMsgApps(): string[] {
 
 describe('UI Gotify (chips de apps)', () => {
   beforeAll(async () => {
+    Object.defineProperty(navigator, 'language', { configurable: true, value: 'es-ES' });
     const html = fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf-8');
     const body = html
       .slice(html.indexOf('<body>') + 6, html.lastIndexOf('</body>'))

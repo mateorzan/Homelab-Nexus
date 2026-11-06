@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import Fastify, { type FastifyInstance } from 'fastify';
 import fastifyStatic from '@fastify/static';
-import { loadConfig } from './config.js';
+import { loadConfig, missingRequiredSettings } from './config.js';
 import { Aggregator } from './aggregator.js';
 import { AlertsStore } from './alerts-store.js';
 import type { AlertState, ResolvedAlertRecord, ServiceConfig } from './types.js';
@@ -329,6 +329,12 @@ export async function buildApp(ctx?: Partial<AppContext>): Promise<FastifyInstan
 
 async function main() {
   const { raw, services, credentials } = await loadConfig();
+  const missing = missingRequiredSettings(services, credentials);
+  if (missing.length) {
+    console.warn(
+      `[config] Beszel, Uptime Kuma and Gotify are required for the dashboard to show data. Missing: ${missing.join(', ')}`,
+    );
+  }
   const aggregator = new Aggregator(services, credentials, raw.pollIntervalMs);
 
   const app = await buildApp({ aggregator, raw, services, credentials });
