@@ -19,6 +19,7 @@ Homelab Nexus combines **Beszel**, **Uptime Kuma**, and **Gotify** in a lightwei
 - **Links / bookmarks:** a dedicated section where you can add any links you want, with custom labels and icons.
 - **Alerts you can manage:** mark them as read or resolved, and review resolved ones later.
 - **English and Spanish interface:** detected from the browser language, with a selector in Settings. The choice is stored per browser.
+- **Accessible by keyboard:** links are real links, dialogs are native, focus is kept while the dashboard updates live, and animations respect `prefers-reduced-motion`.
 - **Persistent data:** bookmarks, monitor links, alert states and background settings are kept in the data directory.
 - **Docker-ready:** the image runs as a non-root user and includes a health check; multi-arch (`amd64` and `arm64`).
 
@@ -163,6 +164,7 @@ GitHub Actions runs type-checking, lint, unit/DOM tests, and browser tests. Vers
 ## Privacy and security
 
 - The project does not ship with your service URLs, credentials, background image, bookmarks, or dashboard data.
+- The server sends a strict Content-Security-Policy and security headers, and only `http(s)` links and image URLs are accepted (validated on the server and in the browser).
 - Keep `.env`, Docker secret files, and `data/` private.
 - Use a read-only Beszel account where possible, and expose the dashboard only to trusted networks or behind your authenticated reverse proxy.
 - Report security issues privately to the repository owner rather than opening a public issue containing sensitive details.
