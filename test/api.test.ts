@@ -94,3 +94,59 @@ describe('API routes', () => {
     expect((app.initialConfig as { bodyLimit?: number }).bodyLimit).toBe(8 * 1024 * 1024);
   });
 });
+
+describe('seguridad: cabeceras y validacion de URLs', () => {
+  let secApp: Awaited<ReturnType<typeof buildApp>>;
+
+  beforeAll(async () => {
+    secApp = await buildApp({
+      aggregator: createTestAggregator(),
+      raw: { port: 0, host: '127.0.0.1', pollIntervalMs: 5000 },
+      services: EMPTY_SERVICES,
+    });
+    await secApp.ready();
+  });
+
+  afterAll(async () => {
+    await secApp.close();
+  });
+
+  it('envia CSP y cabeceras de seguridad', async () => {
+    const res = await secApp.inject({ method: 'GET', url: '/api/health' });
+    expect(res.headers['content-security-policy']).toContain("default-src 'self'");
+    expect(res.headers['content-security-policy']).toContain("frame-ancestors 'none'");
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
+    expect(res.headers['referrer-policy']).toBe('no-referrer');
+    expect(res.headers['x-frame-options']).toBe('DENY');
+  });
+
+  it('rechaza bookmarks con esquema javascript:', async () => {
+    const res = await secApp.inject({
+      method: 'POST',
+      url: '/api/bookmarks',
+      headers: { 'Content-Type': 'application/json' },
+      payload: { bookmarks: [{ title: 'x', url: 'javascript:alert(1)' }] },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('rechaza URLs de monitor que no son http(s)', async () => {
+    const res = await secApp.inject({
+      method: 'POST',
+      url: '/api/monitor-urls',
+      headers: { 'Content-Type': 'application/json' },
+      payload: { urls: { nas: [{ label: 'x', url: 'javascript:alert(1)' }] } },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+
+  it('rechaza un fondo con comillas que romperian el url() de CSS', async () => {
+    const res = await secApp.inject({
+      method: 'POST',
+      url: '/api/config/bg',
+      headers: { 'Content-Type': 'application/json' },
+      payload: { bgImage: 'https://x.test/a.png"); background: red; ("' },
+    });
+    expect(res.statusCode).toBe(400);
+  });
+});

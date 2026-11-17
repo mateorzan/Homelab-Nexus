@@ -132,27 +132,27 @@ describe('UI widgets (settings, banner de caídas, popup de detalle)', () => {
   it('el popup de detalle se cierra al hacer click fuera', async () => {
     document.getElementById('notif-btn')!.click();
     await flush();
-    const item = document.querySelector('.notif-item') as HTMLElement;
+    const item = document.querySelector('.notif-item .notif-item-main') as HTMLElement;
     expect(item).toBeTruthy();
 
     item.click();
     await flush();
     const popup = document.getElementById('notif-detail-popup')!;
-    expect(popup.hidden).toBe(false);
+    expect(popup.hasAttribute('open')).toBe(true);
 
     document.body.click();
     await flush();
-    expect(popup.hidden).toBe(true);
+    expect(popup.hasAttribute('open')).toBe(false);
   });
 
   it('el popup de detalle se cierra con Escape', async () => {
-    (document.querySelector('.notif-item') as HTMLElement).click();
+    (document.querySelector('.notif-item .notif-item-main') as HTMLElement).click();
     await flush();
     const popup = document.getElementById('notif-detail-popup')!;
-    expect(popup.hidden).toBe(false);
+    expect(popup.hasAttribute('open')).toBe(true);
 
     document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     await flush();
-    expect(popup.hidden).toBe(true);
+    expect(popup.hasAttribute('open')).toBe(false);
   });
 });

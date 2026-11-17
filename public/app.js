@@ -1,6 +1,11 @@
 (function () {
   'use strict';
 
+  const ICON_NAMES = ['server', 'info', 'warning', 'critical', 'check', 'checkDouble', 'undo', 'bell', 'upload', 'gear'];
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+
+  const $ = (id) => document.getElementById(id);
+
   const LANGUAGE_KEY = 'homelab-nexus-language';
   const COPY = {
     es: {
@@ -32,6 +37,12 @@
       infrastructure: 'Infraestructura', nodeDownMessage: 'El nodo {name} de Beszel esta caido', serviceUnresponsive: '{name} no responde ({detail})',
       label: 'Etiqueta', add: '+ Agregar', save: 'Guardar', emojis: 'Emojis', searchEmoji: 'Buscar emoji...',
       services: 'Servicios', searchService: 'Buscar servicio...', noIcon: 'Sin icono', uploadPng: 'Subir PNG', title: 'Título', url: 'URL', cancel: 'Cancelar',
+      openNamed: 'Abrir {name}', openMany: 'Abrir {name} (varios enlaces)', configureLinks: 'Configurar enlaces de {name}',
+      unreadCount: 'Notificaciones, {count} sin leer', removeNamed: 'Quitar {name}', removeLink: 'Quitar enlace', usePreset: 'Usar fondo {name}',
+      removePreset: 'Quitar preset {name}', monitorLinks: 'Enlaces del monitor', linkLabel: 'Etiqueta del enlace', linkUrl: 'URL del enlace',
+      accept: 'Aceptar', delete: 'Borrar', iconService: 'Icono de servicio', searchIcon: 'Buscar icono de servicio', uploadImage: 'Subir imagen',
+      closeDetail: 'Cerrar detalle', closeNotice: 'Cerrar aviso', resizeWidth: 'Cambiar el ancho del panel de Gotify', resizeHeight: 'Cambiar el alto del panel de Gotify',
+      searchMessages: 'Buscar mensajes', summary: 'Resumen',
     },
     en: {
       live: ' live', reconnecting: ' reconnecting…', offline: ' offline',
@@ -62,6 +73,12 @@
       infrastructure: 'Infrastructure', nodeDownMessage: 'Beszel node {name} is down', serviceUnresponsive: '{name} is not responding ({detail})',
       label: 'Label', add: '+ Add', save: 'Save', emojis: 'Emojis', searchEmoji: 'Search emoji...',
       services: 'Services', searchService: 'Search service...', noIcon: 'No icon', uploadPng: 'Upload PNG', title: 'Title', url: 'URL', cancel: 'Cancel',
+      openNamed: 'Open {name}', openMany: 'Open {name} (several links)', configureLinks: 'Configure links for {name}',
+      unreadCount: 'Notifications, {count} unread', removeNamed: 'Remove {name}', removeLink: 'Remove link', usePreset: 'Use background {name}',
+      removePreset: 'Remove preset {name}', monitorLinks: 'Monitor links', linkLabel: 'Link label', linkUrl: 'Link URL',
+      accept: 'OK', delete: 'Delete', iconService: 'Service icon', searchIcon: 'Search service icon', uploadImage: 'Upload image',
+      closeDetail: 'Close details', closeNotice: 'Dismiss notice', resizeWidth: 'Resize the Gotify panel width', resizeHeight: 'Resize the Gotify panel height',
+      searchMessages: 'Search messages', summary: 'Summary',
     },
   };
 
@@ -124,25 +141,20 @@
     return text;
   }
 
-  const ICONS = {
-    server: '<rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/>',
-    info: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
-    warning: '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
-    critical: '<polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
-    check: '<polyline points="20 6 9 17 4 12"/>',
-    checkDouble: '<polyline points="11 5 16 10 11 15"/><polyline points="8 12 12 16 19 7"/>',
-    undo: '<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>',
-  };
+  /* ------------------------------- helpers ------------------------------- */
 
   function svgIcon(name) {
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    const svg = document.createElementNS(SVG_NS, 'svg');
     svg.setAttribute('viewBox', '0 0 24 24');
     svg.setAttribute('fill', 'none');
     svg.setAttribute('stroke', 'currentColor');
     svg.setAttribute('stroke-width', '2');
     svg.setAttribute('stroke-linecap', 'round');
     svg.setAttribute('stroke-linejoin', 'round');
-    svg.innerHTML = ICONS[name] || ICONS.info;
+    svg.setAttribute('aria-hidden', 'true');
+    const use = document.createElementNS(SVG_NS, 'use');
+    use.setAttribute('href', '#i-' + (ICON_NAMES.includes(name) ? name : 'info'));
+    svg.appendChild(use);
     return svg;
   }
 
@@ -154,19 +166,57 @@
     return n;
   }
 
-  // Accesibilidad: los elementos clicables que no son <button> aceptan Enter
-  // y Espacio como activadores, con rol de boton y foco.
-  function activatable(node, onClick) {
-    node.setAttribute('role', 'button');
-    node.tabIndex = 0;
-    node.addEventListener('click', onClick);
-    node.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        onClick(e);
-      }
-    });
-    return node;
+  function setText(node, text) {
+    const t = String(text ?? '');
+    if (node.textContent !== t) node.textContent = t;
+  }
+
+  function setClass(node, cls) {
+    if (node.className !== cls) node.className = cls;
+  }
+
+  function lsGet(key) {
+    try { return localStorage.getItem(key); } catch { return null; }
+  }
+  function lsSet(key, value) {
+    try { localStorage.setItem(key, value); } catch { /* cuota o modo privado: la preferencia no se recuerda */ }
+  }
+  function lsRemove(key) {
+    try { localStorage.removeItem(key); } catch { /* sin almacenamiento */ }
+  }
+
+  // Solo http(s): cualquier otro esquema (javascript:, data:...) no se abre.
+  function safeHttpUrl(u) {
+    if (typeof u !== 'string') return null;
+    const v = u.trim();
+    try {
+      const p = new URL(v);
+      return p.protocol === 'http:' || p.protocol === 'https:' ? v : null;
+    } catch { return null; }
+  }
+
+  function safeImageUrl(u) {
+    if (typeof u !== 'string') return null;
+    const v = u.trim();
+    if (/^data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=]+$/i.test(v)) return v;
+    return safeHttpUrl(v);
+  }
+
+  function cssUrl(u) {
+    const esc = u.replace(/["\\\n\r]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'));
+    return 'url("' + esc + '")';
+  }
+
+  function postJson(url, body) {
+    return fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}),
+    }).then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+  }
+
+  function warn(what) {
+    return (err) => console.warn('[' + what + ']', err);
   }
 
   function dot(status) { return el('span', 'dot ' + (status || 'unknown')); }
@@ -186,18 +236,94 @@
   function byId(services, id) { return (services || []).find((s) => s.id === id); }
   function fmt(v, suffix) { return v == null ? '—' : (Math.round(v * 10) / 10) + suffix; }
 
-  /* ------------------------------- hero stats ------------------------------- */
-
-  function hstat(label, value, toneClass) {
-    const s = el('div', 'hstat' + (toneClass ? ' ' + toneClass : ''));
-    s.appendChild(el('span', 'hstat-l', label));
-    s.appendChild(el('span', 'hstat-v', value));
-    return s;
+  function formatAppName(name) {
+    const clean = String(name ?? '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+    return clean.charAt(0).toUpperCase() + clean.slice(1);
   }
 
+  // Reconciliacion por clave: el DOM existente se reutiliza y solo se
+  // actualiza lo que cambia. Reconstruirlo en cada tick SSE (1 s) hacia
+  // perder el foco del teclado y reiniciaba las transiciones CSS.
+  // `update` puede devolver un nodo nuevo que sustituya al existente.
+  function reconcile(container, items, keyOf, create, update) {
+    const existing = new Map();
+    for (const child of container.children) {
+      if (child.dataset.key !== undefined) existing.set(child.dataset.key, child);
+    }
+    const seen = new Map();
+    const wanted = [];
+    for (const item of items) {
+      const base = String(keyOf(item));
+      const n = seen.get(base) || 0;
+      seen.set(base, n + 1);
+      const key = n ? base + '#' + n : base;
+      let node = existing.get(key);
+      if (node) existing.delete(key);
+      else { node = create(item); node.dataset.key = key; }
+      const replacement = update(node, item);
+      if (replacement && replacement !== node) {
+        replacement.dataset.key = key;
+        node.replaceWith(replacement);
+        node = replacement;
+      }
+      wanted.push(node);
+    }
+    existing.forEach((n) => n.remove());
+    wanted.forEach((node, i) => {
+      if (container.children[i] !== node) container.insertBefore(node, container.children[i] || null);
+    });
+  }
+
+  /* ------------------------------- dialogs ------------------------------- */
+
+  function isDialogOpen(d) { return d.hasAttribute('open'); }
+  function openDialog(d) {
+    if (isDialogOpen(d)) return;
+    if (typeof d.showModal === 'function') d.showModal(); else d.setAttribute('open', '');
+  }
+  function closeDialog(d) {
+    if (!isDialogOpen(d)) return;
+    if (typeof d.close === 'function') d.close(); else d.removeAttribute('open');
+  }
+
+  const askDialog = $('ask-dialog');
+  const askForm = $('ask-form');
+  const askMessage = $('ask-message');
+  const askInput = $('ask-input');
+  let askResolve = null;
+
+  function ask(opts) {
+    return new Promise((resolve) => {
+      if (askResolve) askResolve(askInput.hidden ? false : null);
+      askResolve = resolve;
+      setText(askMessage, opts.message);
+      askInput.hidden = !opts.input;
+      askInput.value = opts.value || '';
+      setText($('ask-ok'), opts.okLabel || t('accept'));
+      openDialog(askDialog);
+      (opts.input ? askInput : $('ask-ok')).focus();
+    });
+  }
+
+  function finishAsk(accepted) {
+    const resolve = askResolve;
+    if (!resolve) return;
+    askResolve = null;
+    const isText = !askInput.hidden;
+    closeDialog(askDialog);
+    if (isText) resolve(accepted ? (askInput.value.trim() || null) : null);
+    else resolve(accepted);
+  }
+
+  askForm.addEventListener('submit', (e) => { e.preventDefault(); finishAsk(true); });
+  $('ask-cancel').addEventListener('click', () => finishAsk(false));
+  askDialog.addEventListener('cancel', (e) => { e.preventDefault(); finishAsk(false); });
+  askDialog.addEventListener('click', (e) => { if (e.target === askDialog) finishAsk(false); });
+
+  /* ------------------------------- hero stats ------------------------------- */
+
   function renderHero(summary) {
-    const box = document.getElementById('overview');
-    box.textContent = '';
+    const box = $('overview');
     const stats = [];
 
     const beszel = byId(summary.services, 'beszel')?.metrics;
@@ -207,77 +333,101 @@
       const active = nodes.filter((n) => n.status !== 'down');
       const avgCpu = active.length ? active.reduce((s, n) => s + (n.cpu ?? 0), 0) / active.length : 0;
       const avgMem = active.length ? active.reduce((s, n) => s + (n.mem ?? 0), 0) / active.length : 0;
-      stats.push(hstat(t('statSystems'), (nodes.length - down) + '/' + nodes.length, down ? 'crit' : 'ok'));
-      stats.push(hstat('CPU', fmt(avgCpu, '%'), tone(avgCpu)));
-      stats.push(hstat('RAM', fmt(avgMem, '%'), tone(avgMem)));
+      stats.push({ label: t('statSystems'), value: (nodes.length - down) + '/' + nodes.length, tone: down ? 'crit' : 'ok' });
+      stats.push({ label: t('statCpu'), value: fmt(avgCpu, '%'), tone: tone(avgCpu) });
+      stats.push({ label: t('statRam'), value: fmt(avgMem, '%'), tone: tone(avgMem) });
     }
     const kuma = byId(summary.services, 'uptimekuma')?.metrics;
     if (kuma) {
       const mons = kuma.monitors || [];
       const down = mons.filter((m) => m.status === 'down').length;
-      stats.push(hstat(t('statMonitors'), (mons.length - down) + '/' + mons.length, down ? 'crit' : 'ok'));
+      stats.push({ label: t('statMonitors'), value: (mons.length - down) + '/' + mons.length, tone: down ? 'crit' : 'ok' });
     }
     const gotify = byId(summary.services, 'gotify')?.metrics;
     if (gotify) {
       const crit = gotify.messages.filter((m) => m.priority >= 8).length;
-      stats.push(hstat(t('statMessages'), String(gotify.totalMessages), crit ? 'crit' : 'ok'));
+      stats.push({ label: t('statMessages'), value: String(gotify.totalMessages), tone: crit ? 'crit' : 'ok' });
     }
     const alerts = summary.alerts || [];
     const unreadAl = alerts.filter((a) => a.state !== 'read');
     const critAl = unreadAl.filter((a) => a.level === 'critical').length;
-    stats.push(hstat(t('statAlerts'), String(unreadAl.length), critAl ? 'crit' : unreadAl.length ? 'warn' : 'ok'));
+    stats.push({ label: t('statAlerts'), value: String(unreadAl.length), tone: critAl ? 'crit' : unreadAl.length ? 'warn' : 'ok' });
 
-    stats.forEach((s) => box.appendChild(s));
+    reconcile(box, stats, (s) => s.label, (s) => {
+      const node = el('div', 'hstat');
+      node._l = el('dt', 'hstat-l', s.label);
+      node._v = el('dd', 'hstat-v');
+      node.append(node._l, node._v);
+      return node;
+    }, (node, s) => {
+      setClass(node, 'hstat ' + s.tone);
+      setText(node._v, s.value);
+    });
   }
 
   /* ------------------------------- beszel ------------------------------- */
 
-  function nmetric(label, value, barPct, toneClass) {
-    const m = el('div', 'nmetric');
-    m.appendChild(el('span', 'nmetric-l', label));
-    m.appendChild(el('span', 'nmetric-v', value));
-    if (barPct != null) {
-      const bar = el('div', 'nbar');
-      const fill = el('div', 'nbar-fill ' + (toneClass || 'ok'));
-      fill.style.width = Math.max(0, Math.min(100, barPct)) + '%';
-      bar.appendChild(fill);
-      m.appendChild(bar);
-    }
-    return m;
+  function createMetric(m) {
+    const node = el('div', 'nmetric');
+    node._l = el('span', 'nmetric-l', m.key);
+    node._v = el('span', 'nmetric-v');
+    node._bar = el('div', 'nbar');
+    node._bar.setAttribute('role', 'meter');
+    node._bar.setAttribute('aria-label', m.key);
+    node._bar.setAttribute('aria-valuemin', '0');
+    node._bar.setAttribute('aria-valuemax', '100');
+    node._fill = el('div', 'nbar-fill ok');
+    node._bar.appendChild(node._fill);
+    node.append(node._l, node._v, node._bar);
+    return node;
+  }
+
+  function updateMetric(node, m) {
+    setText(node._v, m.value);
+    const pct = Math.max(0, Math.min(100, m.pct));
+    node._fill.style.width = pct + '%';
+    setClass(node._fill, 'nbar-fill ' + m.tone);
+    node._bar.setAttribute('aria-valuenow', String(Math.round(pct)));
+  }
+
+  function createNode() {
+    const node = el('a', 'node');
+    node.target = '_blank';
+    node.rel = 'noopener noreferrer';
+    const top = el('div', 'node-top');
+    node._dot = dot('unknown');
+    node._name = el('span', 'node-name');
+    node._badge = el('span', 'node-badge');
+    top.append(node._dot, node._name, node._badge);
+    node._row = el('div', 'node-metrics');
+    node.append(top, node._row);
+    return node;
+  }
+
+  function updateNode(node, s) {
+    if (beszelUrl) node.setAttribute('href', beszelUrl); else node.removeAttribute('href');
+    setClass(node._dot, 'dot ' + (s.status || 'unknown'));
+    setText(node._name, s.name);
+    setClass(node._badge, 'node-badge ' + (s.status || 'unknown'));
+    setText(node._badge, s.status);
+    const cpu = s.cpu ?? 0;
+    const mem = s.mem ?? 0;
+    const disk = s.disk ?? 0;
+    const metrics = [
+      { key: 'CPU', value: (Math.round(cpu * 10) / 10).toFixed(1), pct: cpu, tone: tone(cpu) },
+      { key: 'RAM', value: (Math.round(mem * 10) / 10).toFixed(1), pct: mem, tone: tone(mem) },
+      { key: 'DISK', value: (Math.round(disk * 10) / 10).toFixed(1), pct: disk, tone: tone(disk) },
+    ];
+    if (s.temp != null) metrics.push({ key: 'TEMP', value: Math.round(s.temp) + '°', pct: Math.min(100, s.temp), tone: tempTone(s.temp) });
+    reconcile(node._row, metrics, (m) => m.key, createMetric, updateMetric);
   }
 
   function renderBeszel(metrics) {
-    const box = document.getElementById('beszel');
-    box.textContent = '';
     const systems = metrics?.systems || [];
     const down = systems.filter((n) => n.status === 'down').length;
-    document.getElementById('beszel-count').textContent = t('nodeCount', { count: systems.length }) + (down ? ' · ' + t('nodesDown', { count: down }) : '');
-
-    for (const s of systems) {
-      const node = el('div', 'node');
-      if (beszelUrl) {
-        node.style.cursor = 'pointer';
-        activatable(node, () => {
-          window.open(beszelUrl, '_blank', 'noopener');
-        });
-      }
-      const top = el('div', 'node-top');
-      top.appendChild(dot(s.status));
-      top.appendChild(el('span', 'node-name', s.name));
-      top.appendChild(el('span', 'node-badge ' + (s.status || 'unknown'), s.status));
-      node.appendChild(top);
-      const metricsRow = el('div', 'node-metrics');
-      const cpu = s.cpu ?? 0;
-      const mem = s.mem ?? 0;
-      const disk = s.disk ?? 0;
-      metricsRow.appendChild(nmetric('CPU', (Math.round(cpu * 10) / 10).toFixed(1), cpu, tone(cpu)));
-      metricsRow.appendChild(nmetric('RAM', (Math.round(mem * 10) / 10).toFixed(1), mem, tone(mem)));
-      metricsRow.appendChild(nmetric('DISK', (Math.round(disk * 10) / 10).toFixed(1), disk, tone(disk)));
-      if (s.temp != null) metricsRow.appendChild(nmetric('TEMP', Math.round(s.temp) + '°', Math.min(100, s.temp), tempTone(s.temp)));
-      node.appendChild(metricsRow);
-      box.appendChild(node);
-    }
-    document.getElementById('beszel-wrap').hidden = false;
+    setText($('beszel-count'), t('nodeCount', { count: systems.length }) + (down ? ' · ' + t('nodesDown', { count: down }) : ''));
+    reconcile($('beszel'), systems, (s) => s.name, createNode, updateNode);
+    $('beszel-wrap').hidden = false;
   }
 
   /* ------------------------------- uptime kuma ------------------------------- */
@@ -325,11 +475,14 @@
     'duckdns': 'duckdns',
     'cloudflare': 'cloudflare',
     'ansible': 'ansible',
+    'ansible semaphore': 'ansible',
     'docker': 'docker',
     'linux': 'linux',
     'windows': 'windows',
     'macos': 'apple',
   };
+
+  const SVC_ICONS = ['n8n', 'nextcloud', 'vaultwarden', 'beszel', 'portainer', 'upsnap', 'gotify', 'nginx-proxy-manager', 'deluge', 'downtify', 'jellyfin', 'prowlarr', 'radarr', 'sonarr', 'plex', 'emby', 'home-assistant', 'pihole', 'traefik', 'syncthing', 'filebrowser', 'flaresolverr', 'proxmox', 'qbittorrent', 'transmission', 'gitea', 'grafana', 'influxdb', 'mosquitto', 'node-red', 'prometheus', 'zabbix', 'wireguard', 'unifi', 'opnsense', 'pfsense', 'adguard', 'duckdns', 'cloudflare', 'ansible', 'docker', 'linux', 'windows', 'apple', 'uptime-kuma', 'paperless', 'immich', 'mealie', 'authentik', 'crowdsec', 'dozzle', 'homepage', 'glance', 'homarr', 'dashy', 'organizr'];
 
   const loadedIcons = new Set();
   const failedIcons = new Set();
@@ -341,26 +494,20 @@
       .replace(/-+/g, '-');
   }
 
+  function cdnImg(src, cls) {
+    const img = document.createElement('img');
+    if (cls) img.className = cls;
+    img.alt = '';
+    img.referrerPolicy = 'no-referrer';
+    img.src = src;
+    return img;
+  }
+
   function serviceIcon(name) {
     const key = (name || '').toLowerCase().trim();
-    const img = document.createElement('img');
-    img.classList.add('service-icon');
-    img.alt = '';
+    const img = cdnImg(`${ICON_CDN}/${failedIcons.has(key) ? 'docker' : (SERVICE_LOGOS[key] || normalizeSlug(name))}.png`, 'service-icon');
     img.loading = 'lazy';
-
-    if (failedIcons.has(key)) {
-      img.src = `${ICON_CDN}/docker.png`;
-      return img;
-    }
-
-    const slug = SERVICE_LOGOS[key] || normalizeSlug(name);
-
-    if (loadedIcons.has(key)) {
-      img.src = `${ICON_CDN}/${slug}.png`;
-      return img;
-    }
-
-    img.src = `${ICON_CDN}/${slug}.png`;
+    if (failedIcons.has(key) || loadedIcons.has(key)) return img;
     img.onerror = () => {
       if (!failedIcons.has(key)) {
         failedIcons.add(key);
@@ -368,116 +515,138 @@
       }
     };
     img.onload = () => { loadedIcons.add(key); };
-
     return img;
   }
 
+  let monitorUrlsData = {};
+
+  function closeMonitorMenus(except) {
+    document.querySelectorAll('.monitor-menu').forEach((menu) => {
+      if (menu === except) return;
+      menu.hidden = true;
+      const btn = menu.parentElement && menu.parentElement.querySelector('.monitor-link[aria-haspopup]');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  function monitorEntries(m) {
+    const cur = monitorUrlsData[m.name] || [];
+    const all = cur.length ? cur : (m.url ? [{ label: t('open'), url: m.url }] : []);
+    return all.filter((e) => safeHttpUrl(e.url));
+  }
+
+  function openMonitorMenu(row, btn, menu) {
+    const wasHidden = menu.hidden;
+    closeMonitorMenus();
+    if (!wasHidden) return;
+    menu.replaceChildren();
+    for (const entry of row._entries) {
+      const item = el('a', 'monitor-menu-item', entry.label || t('open'));
+      item.href = entry.url.trim();
+      item.target = '_blank';
+      item.rel = 'noopener noreferrer';
+      item.setAttribute('role', 'menuitem');
+      menu.appendChild(item);
+    }
+    menu.hidden = false;
+    btn.setAttribute('aria-expanded', 'true');
+    const first = menu.querySelector('a');
+    if (first) first.focus();
+  }
+
+  // El enlace del monitor es un <a> (una URL) o un <button> con menu
+  // (varias URLs) que cubre la tarjeta; el boton de ajustes queda aparte.
+  function syncMonitorLink(row, m) {
+    const entries = monitorEntries(m);
+    const mode = entries.length === 0 ? 'none' : entries.length === 1 ? 'one' : 'many';
+    const sig = currentLanguage + mode + (mode === 'one' ? entries[0].url : '');
+    row._entries = entries;
+    if (row._linkSig === sig) return;
+    row._linkSig = sig;
+    if (row._link) row._link.remove();
+    if (row._menu) row._menu.remove();
+    row._link = null;
+    row._menu = null;
+    row.classList.toggle('has-link', mode !== 'none');
+    if (mode === 'none') return;
+    if (mode === 'one') {
+      const a = el('a', 'monitor-link');
+      a.href = entries[0].url.trim();
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.setAttribute('aria-label', t('openNamed', { name: m.name }));
+      row._link = a;
+      row.prepend(a);
+      return;
+    }
+    const btn = el('button', 'monitor-link');
+    btn.setAttribute('aria-label', t('openMany', { name: m.name }));
+    btn.setAttribute('aria-haspopup', 'menu');
+    btn.setAttribute('aria-expanded', 'false');
+    const menu = el('div', 'monitor-menu');
+    menu.setAttribute('role', 'menu');
+    menu.hidden = true;
+    btn.addEventListener('click', () => openMonitorMenu(row, btn, menu));
+    row._link = btn;
+    row._menu = menu;
+    row.prepend(btn);
+    row.appendChild(menu);
+  }
+
+  function createMonitor(m) {
+    const row = el('div', 'monitor');
+    row._dot = dot(m.status);
+    const info = el('div', 'monitor-info');
+    const nameRow = el('div', 'monitor-name-row');
+    nameRow.appendChild(serviceIcon(m.name));
+    nameRow.appendChild(el('span', 'monitor-name', m.name));
+    info.appendChild(nameRow);
+    row._uptime = el('div', 'monitor-uptime');
+    row._latency = el('div', 'monitor-latency');
+    info.append(row._uptime, row._latency);
+    row._badge = el('span', 'monitor-badge');
+    const cfgBtn = el('button', 'monitor-cfg');
+    cfgBtn.setAttribute('aria-haspopup', 'dialog');
+    row._cfg = cfgBtn;
+    cfgBtn.appendChild(svgIcon('gear'));
+    cfgBtn.addEventListener('click', () => openCfgPopup(m.name, cfgBtn));
+    row.append(row._dot, info, row._badge, cfgBtn);
+    row.addEventListener('focusout', (e) => {
+      if (row._menu && e.relatedTarget && !row.contains(e.relatedTarget)) closeMonitorMenus();
+    });
+    return row;
+  }
+
+  const badgeLabel = (st) => ({ up: t('statusUpShort'), down: t('statusDownShort'), pending: t('statusPendingShort'), maintenance: t('statusMaintenanceShort') })[st] || t('statusUnknownShort');
+
+  function updateMonitor(row, m) {
+    row._m = m;
+    row._cfg.setAttribute('aria-label', t('configureLinks', { name: m.name }));
+    setClass(row._dot, 'dot ' + m.status);
+    setText(row._uptime, m.uptime24h != null ? t('uptime24', { value: m.uptime24h.toFixed(2) }) : '');
+    setText(row._latency, m.latency != null ? t('ping', { value: Math.round(m.latency) }) : '');
+    setText(row._badge, badgeLabel(m.status));
+    setClass(row._badge, 'monitor-badge ' + (m.status || 'unknown'));
+    syncMonitorLink(row, m);
+  }
+
+  function syncAllMonitorLinks() {
+    document.querySelectorAll('#kuma .monitor').forEach((row) => { if (row._m) syncMonitorLink(row, row._m); });
+  }
+
   function renderKuma(metrics) {
-    const box = document.getElementById('kuma');
     const monitors = metrics?.monitors || [];
     if (!monitors.length) {
-      document.getElementById('kuma-wrap').hidden = true;
+      $('kuma-wrap').hidden = true;
       return;
     }
     const down = monitors.filter((m) => m.status === 'down').length;
-    document.getElementById('kuma-count').textContent = t('monitorCount', { count: monitors.length }) + (down ? ' · ' + t('monitorsDown', { count: down }) : '');
-
-    const existing = box.querySelectorAll('.monitor');
-    const existingMap = {};
-    existing.forEach((row) => { existingMap[row.dataset.name] = row; });
-
-    const seen = new Set();
-    for (const m of monitors) {
-      seen.add(m.name);
-      let row = existingMap[m.name];
-
-      if (!row) {
-        row = el('div', 'monitor');
-        row.dataset.name = m.name;
-
-        row.appendChild(dot(m.status));
-        const info = el('div', 'monitor-info');
-        const nameRow = el('div', 'monitor-name-row');
-        nameRow.appendChild(serviceIcon(m.name));
-        nameRow.appendChild(el('span', 'monitor-name', m.name));
-        info.appendChild(nameRow);
-        info.appendChild(el('div', 'monitor-uptime'));
-        info.appendChild(el('div', 'monitor-latency'));
-        row.appendChild(info);
-        row.appendChild(el('span', 'monitor-badge'));
-
-        const cfgBtn = el('button', 'monitor-cfg');
-        cfgBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>';
-        row.appendChild(cfgBtn);
-
-        cfgBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          openCfgPopup(m.name, cfgBtn);
-        });
-
-        row.style.cursor = 'pointer';
-        const menu = el('div', 'monitor-menu');
-        menu.hidden = true;
-        row.appendChild(menu);
-        activatable(row, (e) => {
-          if (e.target.closest('.monitor-cfg') || e.target.closest('.monitor-cfg-popup')) return;
-          if (menu.contains(e.target)) return;
-          const cur = monitorUrlsData[m.name] || [];
-          const all = cur.length ? cur : (m.url ? [{ label: t('open'), url: m.url }] : []);
-          if (!all.length) return;
-          if (all.length === 1) {
-            window.open(all[0].url, '_blank', 'noopener');
-            return;
-          }
-          e.stopPropagation();
-          menu.textContent = '';
-          for (const entry of all) {
-            const item = el('div', 'monitor-menu-item', entry.label);
-            item.addEventListener('click', (ev) => { ev.stopPropagation(); window.open(entry.url, '_blank', 'noopener'); });
-            menu.appendChild(item);
-          }
-          const wasHidden = menu.hidden;
-          document.querySelectorAll('.monitor-menu').forEach((m2) => { m2.hidden = true; });
-          menu.hidden = !wasHidden;
-        });
-        row.addEventListener('mouseleave', () => { menu.hidden = true; });
-      }
-
-      const dotEl = row.querySelector('.dot');
-      if (dotEl) dotEl.className = 'dot ' + m.status;
-
-      const uptimeEl = row.querySelector('.monitor-uptime');
-      if (uptimeEl) uptimeEl.textContent = m.uptime24h != null ? t('uptime24', { value: m.uptime24h.toFixed(2) }) : '';
-
-      const latencyEl = row.querySelector('.monitor-latency');
-      if (latencyEl) latencyEl.textContent = m.latency != null ? t('ping', { value: Math.round(m.latency) }) : '';
-
-      const badge = row.querySelector('.monitor-badge');
-      if (badge) {
-        const badgeLabel = ({ up: t('statusUpShort'), down: t('statusDownShort'), pending: t('statusPendingShort'), maintenance: t('statusMaintenanceShort') })[m.status] || t('statusUnknownShort');
-        badge.textContent = badgeLabel;
-        badge.className = 'monitor-badge ' + (m.status || 'unknown');
-      }
-
-      if (!existingMap[m.name]) box.appendChild(row);
-    }
-
-    for (const [name, row] of Object.entries(existingMap)) {
-      if (!seen.has(name)) row.remove();
-    }
-
-    document.getElementById('kuma-wrap').hidden = false;
+    setText($('kuma-count'), t('monitorCount', { count: monitors.length }) + (down ? ' · ' + t('monitorsDown', { count: down }) : ''));
+    reconcile($('kuma'), monitors, (m) => m.name, createMonitor, updateMonitor);
+    $('kuma-wrap').hidden = false;
   }
 
   /* ------------------------------- alerts ------------------------------- */
-
-  function postJson(url, body) {
-    return fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body || {}),
-    }).then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
-  }
 
   let lastSummary = null;
   let resolvedOpen = false;
@@ -522,56 +691,69 @@
     rerenderAlerts();
   }
 
-  /* ------------------------------- notif detail popup ------------------------------- */
+  /* ------------------------------- dropdowns ------------------------------- */
+
+  const notifBtn = $('notif-btn');
+  const notifDropdown = $('notif-dropdown');
+  const settingsBtn = $('settings-btn');
+  const settingsDropdown = $('settings-dropdown');
+
+  function setDropdown(btn, dropdown, open) {
+    dropdown.hidden = !open;
+    btn.setAttribute('aria-expanded', String(open));
+  }
+
+  function closeDropdowns() {
+    setDropdown(notifBtn, notifDropdown, false);
+    setDropdown(settingsBtn, settingsDropdown, false);
+  }
+
+  /* ------------------------------- notif detail dialog ------------------------------- */
+
+  const detailPopup = $('notif-detail-popup');
 
   function showNotifDetail(a) {
-    const popup = document.getElementById('notif-detail-popup');
-    const title = document.getElementById('notif-detail-title');
-    const body = document.getElementById('notif-detail-body');
-    popup.hidden = false;
-    title.textContent = localizeAlertSource(a.source) + ' — ' + (a.level === 'critical' ? t('alertCritical') : a.level === 'warning' ? t('alertWarning') : t('alertInfo'));
-    body.innerHTML = '';
-    const msgTitle = el('div', 'detail-msg-title', localizeAlertMessage(a.message) || t('noTitle'));
-    body.appendChild(msgTitle);
-    const msgTime = el('div', 'detail-msg-time', new Date(a.time).toLocaleString('es'));
-    body.appendChild(msgTime);
-    if (a.fullMessage) {
-      const msgBody = el('div', 'detail-msg-body', a.fullMessage);
-      body.appendChild(msgBody);
-    } else {
-      const msgBody = el('div', 'detail-msg-body', localizeAlertMessage(a.message));
-      body.appendChild(msgBody);
-    }
-    notifDropdown.hidden = true;
+    setText($('notif-detail-title'), localizeAlertSource(a.source) + ' — ' + (a.level === 'critical' ? t('alertCritical') : a.level === 'warning' ? t('alertWarning') : t('alertInfo')));
+    $('notif-detail-body').replaceChildren(
+      el('div', 'detail-msg-title', localizeAlertMessage(a.message) || t('noTitle')),
+      el('div', 'detail-msg-time', new Date(a.time).toLocaleString('es')),
+      el('div', 'detail-msg-body', a.fullMessage || localizeAlertMessage(a.message)),
+    );
+    setDropdown(notifBtn, notifDropdown, false);
+    openDialog(detailPopup);
   }
 
-  function closeNotifDetail() {
-    document.getElementById('notif-detail-popup').hidden = true;
-  }
+  function closeNotifDetail() { closeDialog(detailPopup); }
 
-  document.getElementById('notif-detail-popup').addEventListener('click', (e) => {
-    if (e.target.closest('.notif-detail-close')) closeNotifDetail();
+  detailPopup.addEventListener('click', (e) => {
+    if (e.target.closest('.notif-detail-close') || e.target === detailPopup) closeNotifDetail();
   });
+  // El detalle se abre desde el dropdown, que se cierra al abrirlo: el foco
+  // vuelve al boton de notificaciones en vez de perderse en un nodo oculto.
+  detailPopup.addEventListener('close', () => { notifBtn.focus(); });
 
   // Clicar fuera del popup (en la pagina) lo cierra; Escape tambien.
   // Se ignoran los clicks en el propio dropdown y su boton: ahi se abre.
   document.addEventListener('click', (e) => {
-    const popup = document.getElementById('notif-detail-popup');
-    if (popup.hidden) return;
+    if (!isDialogOpen(detailPopup)) return;
     if (e.target.closest('#notif-detail-popup, #notif-dropdown, #notif-btn')) return;
     closeNotifDetail();
   });
+
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     closeNotifDetail();
-    // Escape tambien cierra los dropdowns (ademas del boton y el click fuera).
-    notifDropdown.hidden = true;
-    settingsDropdown.hidden = true;
+    closeMonitorMenus();
+    closeCfgPopup();
+    closeBookmarkPopup();
+    const active = document.activeElement;
+    const back = notifDropdown.contains(active) ? notifBtn : settingsDropdown.contains(active) ? settingsBtn : null;
+    closeDropdowns();
+    if (back) back.focus();
   });
 
   function actionBtn(icon, title, onClick) {
     const b = el('button', 'notif-action');
-    b.type = 'button';
     b.title = title;
     b.setAttribute('aria-label', title);
     b.appendChild(svgIcon(icon));
@@ -579,17 +761,26 @@
     return b;
   }
 
-  function alertRow(a, resolved) {
+  function alertSig(a, resolved) {
+    return [currentLanguage, resolved ? 'r' : a.state, a.level, a.source, a.message].join('|');
+  }
+
+  // El contenido clicable (abre el detalle) y las acciones son hermanos:
+  // un control interactivo no puede contener a otro.
+  function buildAlertRow(a, resolved) {
     const row = el('div', 'notif-item ' + a.level + (resolved ? ' is-resolved' : a.state === 'read' ? ' is-read' : ''));
-    row.style.cursor = 'pointer';
+    row._sig = alertSig(a, resolved);
+    row._alert = a;
+    const main = el('button', 'notif-item-main');
     const ico = el('span', 'notif-item-ico');
     ico.appendChild(svgIcon(a.level === 'critical' ? 'critical' : a.level === 'warning' ? 'warning' : 'info'));
-    row.appendChild(ico);
     const body = el('div', 'notif-item-body');
     body.appendChild(el('div', 'notif-item-src', formatAppName(localizeAlertSource(a.source))));
     body.appendChild(el('div', 'notif-item-msg', localizeAlertMessage(a.message)));
-    row.appendChild(body);
-    row.appendChild(el('span', 'notif-item-time', timeAgo(a.time)));
+    row._time = el('span', 'notif-item-time', timeAgo(a.time));
+    main.append(ico, body, row._time);
+    main.addEventListener('click', () => showNotifDetail(row._alert));
+    row.appendChild(main);
     const actions = el('div', 'notif-item-actions');
     if (resolved) {
       actions.appendChild(actionBtn('undo', t('restoreAlert'), () => setAlertState(a.id, 'read')));
@@ -601,80 +792,91 @@
       actions.appendChild(actionBtn('checkDouble', t('markResolved'), () => setAlertState(a.id, 'resolved')));
     }
     row.appendChild(actions);
-    activatable(row, (e) => {
-      if (e.target.closest('.notif-action')) return;
-      showNotifDetail(a);
-    });
     return row;
+  }
+
+  function updateAlertRow(row, a, resolved) {
+    if (row._sig !== alertSig(a, resolved)) return buildAlertRow(a, resolved);
+    row._alert = a;
+    setText(row._time, timeAgo(a.time));
+    return null;
+  }
+
+  function buildResolvedSection() {
+    const sec = el('div', 'notif-resolved');
+    sec._head = el('button', 'notif-resolved-head');
+    sec._head.setAttribute('aria-expanded', 'false');
+    sec._head.addEventListener('click', (e) => {
+      e.stopPropagation();
+      resolvedOpen = !resolvedOpen;
+      sec.classList.toggle('open', resolvedOpen);
+      sec._head.setAttribute('aria-expanded', String(resolvedOpen));
+    });
+    sec._clear = el('button', 'notif-resolved-clear');
+    sec._clear.hidden = true;
+    sec._clear.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!await ask({ message: t('confirmClearResolved'), okLabel: t('delete') })) return;
+      postJson('/api/alerts/clear-resolved', {})
+        .then(() => { /* el server re-emite el resumen por SSE */ })
+        .catch((err) => console.error('[alerts] no se pudieron limpiar:', err));
+      lastSummary.resolvedAlerts = [];
+      resolvedOpen = false;
+      rerenderAlerts();
+    });
+    sec._body = el('div', 'notif-resolved-body');
+    sec.append(sec._head, sec._clear, sec._body);
+    return sec;
+  }
+
+  function updateResolvedSection(sec, resolvedAlerts) {
+    sec.classList.toggle('open', resolvedOpen);
+    sec._head.setAttribute('aria-expanded', String(resolvedOpen));
+    setText(sec._head, t('resolvedCount', { count: resolvedAlerts.length }));
+    setText(sec._clear, t('clear'));
+    sec._clear.hidden = resolvedAlerts.length <= 5;
+    reconcile(sec._body, resolvedAlerts, (a) => 'a:' + a.id, (a) => buildAlertRow(a, true), (row, a) => updateAlertRow(row, a, true));
   }
 
   function renderAlerts(alerts, resolvedAlerts) {
     alerts = alerts || [];
     resolvedAlerts = resolvedAlerts || [];
-    const list = document.getElementById('notif-list');
-    const badge = document.getElementById('notif-badge');
-    const readAllBtn = document.getElementById('notif-read-all');
-    list.textContent = '';
+    const badge = $('notif-badge');
+    const readAllBtn = $('notif-read-all');
 
     const unread = alerts.filter((a) => a.state !== 'read');
     badge.hidden = !unread.length;
-    badge.textContent = unread.length;
+    setText(badge, unread.length);
     readAllBtn.hidden = !unread.length;
+    notifBtn.setAttribute('aria-label', unread.length ? t('unreadCount', { count: unread.length }) : t('notifications'));
 
-    if (!alerts.length && !resolvedAlerts.length) {
-      list.appendChild(el('div', 'notif-empty', t('noNotifications')));
-      return;
-    }
-    if (!alerts.length) list.appendChild(el('div', 'notif-empty', t('noActiveNotifications')));
-    for (const a of alerts) list.appendChild(alertRow(a, false));
+    const entries = [];
+    if (!alerts.length && !resolvedAlerts.length) entries.push({ kind: 'empty', text: t('noNotifications') });
+    else if (!alerts.length) entries.push({ kind: 'empty', text: t('noActiveNotifications') });
+    for (const a of alerts) entries.push({ kind: 'alert', a });
+    if (resolvedAlerts.length) entries.push({ kind: 'resolved', list: resolvedAlerts });
 
-    if (resolvedAlerts.length) {
-      const sec = el('div', 'notif-resolved' + (resolvedOpen ? ' open' : ''));
-      const head = el('button', 'notif-resolved-head');
-      head.type = 'button';
-      head.textContent = t('resolvedCount', { count: resolvedAlerts.length });
-      head.addEventListener('click', (e) => {
-        e.stopPropagation();
-        resolvedOpen = !resolvedOpen;
-        sec.classList.toggle('open', resolvedOpen);
-      });
-      sec.appendChild(head);
-      if (resolvedAlerts.length > 5) {
-        const clearBtn = el('button', 'notif-resolved-clear');
-        clearBtn.textContent = t('clear');
-        clearBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (!confirm(t('confirmClearResolved'))) return;
-          postJson('/api/alerts/clear-resolved', {})
-            .then(() => { /* el server re-emite el resumen por SSE */ })
-            .catch((err) => console.error('[alerts] no se pudieron limpiar:', err));
-          lastSummary.resolvedAlerts = [];
-          resolvedOpen = false;
-          rerenderAlerts();
-        });
-        sec.appendChild(clearBtn);
-      }
-      const box = el('div', 'notif-resolved-body');
-      for (const a of resolvedAlerts) box.appendChild(alertRow(a, true));
-      sec.appendChild(box);
-      list.appendChild(sec);
-    }
+    reconcile($('notif-list'), entries, (e) => e.kind === 'alert' ? 'a:' + e.a.id : e.kind, (e) => {
+      if (e.kind === 'alert') return buildAlertRow(e.a, false);
+      if (e.kind === 'resolved') return buildResolvedSection();
+      return el('div', 'notif-empty');
+    }, (node, e) => {
+      if (e.kind === 'alert') return updateAlertRow(node, e.a, false);
+      if (e.kind === 'resolved') updateResolvedSection(node, e.list);
+      else setText(node, e.text);
+      return null;
+    });
   }
 
-  document.getElementById('notif-read-all').addEventListener('click', (e) => {
+  $('notif-read-all').addEventListener('click', (e) => {
     e.stopPropagation();
     markAllRead();
   });
 
-  const notifBtn = document.getElementById('notif-btn');
-  const notifDropdown = document.getElementById('notif-dropdown');
-  const settingsBtn = document.getElementById('settings-btn');
-  const settingsDropdown = document.getElementById('settings-dropdown');
-
   notifBtn.addEventListener('click', (e) => {
     e.stopPropagation();
-    settingsDropdown.hidden = true;
-    notifDropdown.hidden = !notifDropdown.hidden;
+    setDropdown(settingsBtn, settingsDropdown, false);
+    setDropdown(notifBtn, notifDropdown, notifDropdown.hidden);
   });
   // Los clicks dentro del dropdown no deben cerrarlo (el cierre es por el
   // boton o por clicks fuera); sin esto, "Resueltas" se abria y cerraba
@@ -683,7 +885,20 @@
   // Mismo trato para el de Configuracion: sin esto, cualquier click dentro
   // (input de imagen, slider, presets) lo cerraba en el mismo click.
   settingsDropdown.addEventListener('click', (e) => e.stopPropagation());
-  document.addEventListener('click', () => { notifDropdown.hidden = true; settingsDropdown.hidden = true; });
+  document.addEventListener('click', closeDropdowns);
+
+  // Con teclado, salir del dropdown con Tab lo cierra.
+  for (const [btn, dd] of [[notifBtn, notifDropdown], [settingsBtn, settingsDropdown]]) {
+    btn.parentElement.addEventListener('focusout', (e) => {
+      if (e.relatedTarget && !btn.parentElement.contains(e.relatedTarget)) setDropdown(btn, dd, false);
+    });
+  }
+
+  settingsBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setDropdown(notifBtn, notifDropdown, false);
+    setDropdown(settingsBtn, settingsDropdown, settingsDropdown.hidden);
+  });
 
   /* ------------------------------- gotify ------------------------------- */
 
@@ -698,18 +913,6 @@
 
   function levelOf(p) { return p >= 8 ? 'critical' : p >= 5 ? 'warning' : 'info'; }
 
-  function priorityBadge(p) {
-    const lv = levelOf(p);
-    const label = lv === 'critical' ? t('priorityCriticalBadge') : lv === 'warning' ? t('priorityWarningBadge') : t('priorityInfoBadge');
-    return el('span', 'prio ' + lv, label);
-  }
-
-  function chipBtn(label, active, onClick) {
-    const c = el('button', 'chip-chip' + (active ? ' active' : ''), label);
-    c.addEventListener('click', onClick);
-    return c;
-  }
-
   function refreshGotify() {
     if (!gotifyMetrics) return;
     msgLimit = MSG_STEP;
@@ -717,36 +920,76 @@
     renderGotifyMessages(gotifyMetrics);
   }
 
-  function formatAppName(name) {
-    const clean = String(name ?? '').replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
-    return clean.charAt(0).toUpperCase() + clean.slice(1);
-  }
-
-  document.getElementById('gotify-priority-level').addEventListener('change', (e) => {
+  $('gotify-priority-level').addEventListener('change', (e) => {
     priorityFilter = e.target.value;
     refreshGotify();
   });
 
   function renderGotifyFilter(metrics) {
-    const box = document.getElementById('gotify-filter');
     // Si la app seleccionada ya no existe en Gotify, volvemos a "Todas" en
     // vez de quedar filtrando algo que no se ve (filtro fantasma).
     if (filterApp !== 'all' && !(metrics.apps || []).some((a) => String(a.id) === filterApp)) {
       filterApp = 'all';
     }
-    box.textContent = '';
-    box.appendChild(chipBtn(t('allApps'), filterApp === 'all', () => { filterApp = 'all'; refreshGotify(); }));
+    const chips = [{ id: 'all', label: t('allApps'), muted: false }];
     for (const a of metrics.apps || []) {
-      const chip = chipBtn(formatAppName(a.name) + ' · ' + a.count, filterApp === String(a.id), () => { filterApp = String(a.id); refreshGotify(); });
-      if (!a.count) chip.classList.add('muted');
-      box.appendChild(chip);
+      chips.push({ id: String(a.id), label: formatAppName(a.name) + ' · ' + a.count, muted: !a.count });
     }
+    reconcile($('gotify-filter'), chips, (c) => c.id, (c) => {
+      const b = el('button', 'chip-chip');
+      b.addEventListener('click', () => { filterApp = c.id; refreshGotify(); });
+      return b;
+    }, (b, c) => {
+      setClass(b, 'chip-chip' + (filterApp === c.id ? ' active' : '') + (c.muted ? ' muted' : ''));
+      setText(b, c.label);
+      b.setAttribute('aria-pressed', String(filterApp === c.id));
+    });
+  }
+
+  function createMsg() {
+    const row = el('div', 'msg');
+    const body = el('div', 'msg-body');
+    const top = el('div', 'msg-top');
+    row._app = el('span', 'msg-app');
+    row._time = el('span', 'msg-time');
+    top.append(row._app, row._time);
+    const titleLine = el('div', 'msg-title');
+    row._prio = el('span', 'prio info');
+    row._title = el('span', 'msg-title-text');
+    titleLine.append(row._prio, row._title);
+    row._text = el('div', 'msg-text');
+    row._toggle = el('button', 'msg-toggle');
+    row._toggle.addEventListener('click', () => {
+      if (expandedMsgs.has(row._id)) expandedMsgs.delete(row._id); else expandedMsgs.add(row._id);
+      updateMsg(row, row._m);
+    });
+    body.append(top, titleLine, row._text, row._toggle);
+    row.appendChild(body);
+    return row;
+  }
+
+  function updateMsg(row, m) {
+    row._id = m.id;
+    row._m = m;
+    const lv = levelOf(m.priority);
+    setText(row._app, formatAppName(m.appName));
+    setText(row._time, timeAgo(m.date));
+    setClass(row._prio, 'prio ' + lv);
+    setText(row._prio, lv === 'critical' ? t('priorityCriticalBadge') : lv === 'warning' ? t('priorityWarningBadge') : t('priorityInfoBadge'));
+    setText(row._title, m.title || t('noTitleMessage'));
+    const long = !!m.message && m.message.length > 180;
+    const isExpanded = expandedMsgs.has(m.id);
+    row._text.hidden = !m.message;
+    setText(row._text, m.message || '');
+    setClass(row._text, 'msg-text' + (long && !isExpanded ? ' collapsed' : ''));
+    row._toggle.hidden = !long;
+    setText(row._toggle, isExpanded ? t('showLess') : t('showMore'));
+    row._toggle.setAttribute('aria-expanded', String(isExpanded));
   }
 
   function renderGotifyMessages(metrics) {
-    const box = document.getElementById('gotify-msgs');
-    const empty = document.getElementById('gotify-empty');
-    box.textContent = '';
+    const box = $('gotify-msgs');
+    const empty = $('gotify-empty');
 
     let msgs = metrics?.messages || [];
     if (filterApp !== 'all') msgs = msgs.filter((m) => String(m.appId) === filterApp);
@@ -756,46 +999,25 @@
       msgs = msgs.filter((m) => (m.title + ' ' + m.message).toLowerCase().includes(q));
     }
 
-    if (!msgs.length) { empty.hidden = false; box.hidden = true; document.getElementById('gotify-wrap').hidden = false; return; }
+    if (!msgs.length) { empty.hidden = false; box.hidden = true; $('gotify-wrap').hidden = false; return; }
     empty.hidden = true;
     box.hidden = false;
 
     const shown = msgs.slice(0, msgLimit);
-    for (const m of shown) {
-      const row = el('div', 'msg');
-      const body = el('div', 'msg-body');
-      const top = el('div', 'msg-top');
-      top.appendChild(el('span', 'msg-app', formatAppName(m.appName)));
-      top.appendChild(el('span', 'msg-time', timeAgo(m.date)));
-      body.appendChild(top);
-      const titleLine = el('div', 'msg-title');
-      titleLine.appendChild(priorityBadge(m.priority));
-      titleLine.appendChild(el('span', 'msg-title-text', m.title || t('noTitleMessage')));
-      body.appendChild(titleLine);
-      if (m.message) {
-        const long = m.message.length > 180;
-        const isExpanded = expandedMsgs.has(m.id);
-        const txt = el('div', 'msg-text' + (long && !isExpanded ? ' collapsed' : ''), m.message);
-        body.appendChild(txt);
-        if (long) {
-          const toggle = el('button', 'msg-toggle', isExpanded ? t('showLess') : t('showMore'));
-          toggle.addEventListener('click', () => {
-            const collapsed = txt.classList.toggle('collapsed');
-            if (collapsed) expandedMsgs.delete(m.id); else expandedMsgs.add(m.id);
-            toggle.textContent = collapsed ? t('showMore') : t('showLess');
-          });
-          body.appendChild(toggle);
-        }
-      }
-      row.appendChild(body);
-      box.appendChild(row);
-    }
-    if (msgs.length > shown.length) {
-      const more = el('button', 'msg-toggle', t('loadMore', { count: msgs.length - shown.length }));
+    const entries = shown.map((m) => ({ kind: 'msg', m }));
+    if (msgs.length > shown.length) entries.push({ kind: 'more', remaining: msgs.length - shown.length });
+
+    reconcile(box, entries, (e) => e.kind === 'msg' ? 'm:' + e.m.id : 'more', (e) => {
+      if (e.kind === 'msg') return createMsg();
+      const more = el('button', 'msg-toggle');
       more.addEventListener('click', () => { msgLimit += MSG_STEP; renderGotifyMessages(gotifyMetrics); });
-      box.appendChild(more);
-    }
-    document.getElementById('gotify-wrap').hidden = false;
+      return more;
+    }, (node, e) => {
+      if (e.kind === 'msg') updateMsg(node, e.m);
+      else setText(node, t('loadMore', { count: e.remaining }));
+      return null;
+    });
+    $('gotify-wrap').hidden = false;
   }
 
   /* ------------------------- honestidad: caducidad y conexion ------------------------- */
@@ -804,7 +1026,7 @@
   // en el backend (con metricsStaleSince); aqui las apagamos y lo decimos,
   // en vez de pintar datos viejos como si estuvieran en vivo.
   function markStale(wrapId, svc) {
-    const wrap = document.getElementById(wrapId);
+    const wrap = $(wrapId);
     const head = wrap && wrap.querySelector('.section-head');
     if (!head) return;
     let note = head.querySelector('.stale-note');
@@ -815,7 +1037,7 @@
     }
     if (svc && svc.metricsStaleSince) {
       wrap.classList.add('stale');
-      note.textContent = t('staleSince', { time: timeAgo(svc.metricsStaleSince) });
+      setText(note, t('staleSince', { time: timeAgo(svc.metricsStaleSince) }));
       note.hidden = false;
     } else {
       wrap.classList.remove('stale');
@@ -829,7 +1051,7 @@
   function setLive(state) {
     if (sseState === state) return;
     sseState = state;
-    const indicator = document.getElementById('live-indicator');
+    const indicator = $('live-indicator');
     if (!indicator) return;
     indicator.classList.toggle('reconnecting', state === 'reconnecting');
     indicator.classList.toggle('offline', state === 'offline');
@@ -845,7 +1067,7 @@
   function updateFreshness() {
     if (!lastUpdated) return;
     const stale = Date.now() - lastUpdated > FRESHNESS_STALE_MS;
-    const target = document.getElementById('last-update');
+    const target = $('last-update');
     if (target) {
       target.classList.toggle('stale', stale);
       target.textContent = t('updatedAgo', { time: timeAgo(lastUpdated) }) + (stale ? t('offlineSince') : '');
@@ -859,17 +1081,16 @@
 
   function render(summary) {
     lastSummary = summary;
-    document.getElementById('loading').hidden = true;
-    document.getElementById('error').hidden = true;
+    $('loading').hidden = true;
+    $('error').hidden = true;
 
     const status = summary.overallStatus || 'unknown';
-    const pill = document.getElementById('status');
-    pill.className = 'pill ' + status;
-    document.getElementById('status-text').textContent = STATUS_LABEL[status] ? t(STATUS_LABEL[status]) : status;
+    setClass($('status'), 'pill ' + status);
+    setText($('status-text'), STATUS_LABEL[status] ? t(STATUS_LABEL[status]) : status);
 
-    const heroStatus = document.getElementById('hero-status');
-    heroStatus.className = 'hero-status ' + status;
-    heroStatus.textContent = STATUS_LABEL[status] ? t(STATUS_LABEL[status]) : status;
+    const heroStatus = $('hero-status');
+    setClass(heroStatus, 'hero-status ' + status);
+    setText(heroStatus, STATUS_LABEL[status] ? t(STATUS_LABEL[status]) : status);
 
     lastUpdated = summary.generatedAt || Date.now();
 
@@ -893,72 +1114,87 @@
 
   // El usuario puede descartar el banner; no vuelve a aparecer hasta que se
   // recuperen los servicios y vuelvan a caer (asi no parpadea cada segundo).
+  // El espacio que ocupa se reserva con :has() en el CSS.
   let svcBannerDismissed = false;
 
   function renderServiceAlerts(services) {
-    const banner = document.getElementById('svc-alert-banner');
-    const text = document.getElementById('svc-alert-text');
+    const banner = $('svc-alert-banner');
     const criticalServices = ['beszel', 'uptimekuma'];
     const down = services.filter((s) => criticalServices.includes(s.id) && (s.status === 'unknown' || s.status === 'down'));
     if (!down.length) {
       svcBannerDismissed = false;
       banner.hidden = true;
-      document.body.classList.remove('svc-alert-visible');
       return;
     }
     if (svcBannerDismissed) {
       banner.hidden = true;
-      document.body.classList.remove('svc-alert-visible');
       return;
     }
     const names = down.map((s) => s.name).join(', ');
-    text.textContent = t(down.length === 1 ? 'oneServiceDown' : 'manyServicesDown', { names });
+    setText($('svc-alert-text'), t(down.length === 1 ? 'oneServiceDown' : 'manyServicesDown', { names }));
     banner.hidden = false;
-    document.body.classList.add('svc-alert-visible');
   }
 
-  document.getElementById('svc-alert-close').addEventListener('click', () => {
+  $('svc-alert-close').addEventListener('click', () => {
     svcBannerDismissed = true;
-    document.getElementById('svc-alert-banner').hidden = true;
-    document.body.classList.remove('svc-alert-visible');
+    $('svc-alert-banner').hidden = true;
   });
 
   function showError(err) {
-    document.getElementById('loading').hidden = true;
-    const e = document.getElementById('error');
+    $('loading').hidden = true;
+    const e = $('error');
     e.hidden = false;
     e.textContent = t('loadError', { error: err && err.message ? err.message : err });
   }
 
+  // El polling es solo un respaldo: mientras el SSE esta vivo no se usa y,
+  // si falla, no debe pintar un error encima de una UI que si funciona.
   function fetchOnce() {
-    fetch('/api/summary').then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(render).catch(showError);
+    fetch('/api/summary')
+      .then((r) => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(render)
+      .catch((err) => { if (sseState !== 'live' || !lastSummary) showError(err); });
   }
+
+  let stream = null;
+  let retryTimer = null;
 
   function connectLive() {
     if (typeof EventSource === 'undefined') { fetchOnce(); return; }
     let retryMs = 1000;
     const maxRetry = 30000;
     function open() {
+      retryTimer = null;
       const es = new EventSource('/api/stream');
+      stream = es;
       es.onopen = () => { retryMs = 1000; setLive('live'); };
       es.onmessage = (e) => {
         try {
-          const d = JSON.parse(e.data);
-          console.log('[SSE]', new Date().toLocaleTimeString(), 'genAt=' + d.generatedAt, 'status=' + d.overallStatus);
-          render(d);
+          render(JSON.parse(e.data));
         } catch (err) { console.error('[SSE] parse error:', err); }
       };
       es.onerror = () => {
         es.close();
+        if (stream === es) stream = null;
         setLive('reconnecting');
-        setTimeout(open, retryMs);
+        retryTimer = setTimeout(open, retryMs);
         retryMs = Math.min(retryMs * 2, maxRetry);
       };
     }
     open();
+    // Una pestaña oculta no necesita el stream: se cierra y se reabre al volver.
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        if (stream) { stream.close(); stream = null; }
+        if (retryTimer) { clearTimeout(retryTimer); retryTimer = null; }
+      } else if (!stream && !retryTimer) {
+        retryMs = 1000;
+        open();
+      }
+    });
   }
 
-  document.getElementById('gotify-search').addEventListener('input', (e) => {
+  $('gotify-search').addEventListener('input', (e) => {
     searchText = e.target.value.trim();
     // Solo re-renderizamos los mensajes: escribir no debe reiniciar el
     // limite de "Cargar más" (eso lo hace refreshGotify al cambiar de filtro).
@@ -969,153 +1205,153 @@
   // quedan viejos (SSE caido): feedback honesto de "en vivo".
   setInterval(updateFreshness, 1000);
 
-  const gotifyResize = document.getElementById('gotify-resize');
-  const gotifyResizeBottom = document.getElementById('gotify-resize-bottom');
-  const gotifyWrap = document.getElementById('gotify-wrap');
-  const savedWidth = localStorage.getItem('gotify-width');
-  const savedHeight = localStorage.getItem('gotify-height');
-  if (savedWidth) gotifyWrap.style.width = savedWidth + 'px';
-  if (savedHeight) gotifyWrap.style.height = savedHeight + 'px';
+  /* ------------------------------- sidebar resize ------------------------------- */
 
-  let dragging = false, startX = 0, startW = 0;
-  let draggingV = false, startY = 0, startH = 0;
-  gotifyResize.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    dragging = true;
-    startX = e.clientX;
-    startW = gotifyWrap.offsetWidth;
-    gotifyResize.classList.add('dragging');
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  });
-  gotifyResizeBottom.addEventListener('mousedown', (e) => {
-    e.preventDefault();
-    draggingV = true;
-    startY = e.clientY;
-    startH = gotifyWrap.offsetHeight;
-    gotifyResizeBottom.classList.add('dragging');
-    document.body.style.cursor = 'row-resize';
-    document.body.style.userSelect = 'none';
-  });
-  document.addEventListener('mousemove', (e) => {
-    if (dragging) {
-      const w = Math.max(200, Math.min(800, startW - (e.clientX - startX)));
-      gotifyWrap.style.width = w + 'px';
-    }
-    if (draggingV) {
-      const h = Math.max(150, Math.min(window.innerHeight - 100, startH + (e.clientY - startY)));
-      gotifyWrap.style.height = h + 'px';
-    }
-  });
-  document.addEventListener('mouseup', () => {
-    if (dragging) {
-      dragging = false;
-      gotifyResize.classList.remove('dragging');
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      localStorage.setItem('gotify-width', gotifyWrap.offsetWidth);
-    }
-    if (draggingV) {
-      draggingV = false;
-      gotifyResizeBottom.classList.remove('dragging');
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      localStorage.setItem('gotify-height', gotifyWrap.offsetHeight);
-    }
-  });
+  const gotifyWrap = $('gotify-wrap');
+
+  // Pointer Events (raton, tactil y lapiz) y flechas del teclado.
+  function makeResizer(handle, cfg) {
+    const read = () => (cfg.axis === 'x' ? gotifyWrap.offsetWidth : gotifyWrap.offsetHeight);
+    const apply = (size) => {
+      const v = Math.round(Math.max(cfg.min, Math.min(cfg.max(), size)));
+      gotifyWrap.style[cfg.axis === 'x' ? 'width' : 'height'] = v + 'px';
+      handle.setAttribute('aria-valuenow', String(v));
+      return v;
+    };
+    const saved = Number(lsGet(cfg.key));
+    if (saved) apply(saved);
+    handle.setAttribute('aria-valuemin', String(cfg.min));
+    handle.setAttribute('aria-valuemax', String(cfg.max()));
+    handle.setAttribute('aria-valuenow', String(saved || cfg.initial));
+
+    let start = null;
+    handle.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      start = { p: cfg.axis === 'x' ? e.clientX : e.clientY, size: read() };
+      handle.classList.add('dragging');
+      if (handle.setPointerCapture) handle.setPointerCapture(e.pointerId);
+    });
+    handle.addEventListener('pointermove', (e) => {
+      if (!start) return;
+      const delta = (cfg.axis === 'x' ? e.clientX : e.clientY) - start.p;
+      apply(cfg.axis === 'x' ? start.size - delta : start.size + delta);
+    });
+    const end = () => {
+      if (!start) return;
+      start = null;
+      handle.classList.remove('dragging');
+      lsSet(cfg.key, String(read()));
+    };
+    handle.addEventListener('pointerup', end);
+    handle.addEventListener('pointercancel', end);
+    handle.addEventListener('keydown', (e) => {
+      const grow = cfg.axis === 'x' ? 'ArrowLeft' : 'ArrowDown';
+      const shrink = cfg.axis === 'x' ? 'ArrowRight' : 'ArrowUp';
+      if (e.key !== grow && e.key !== shrink) return;
+      e.preventDefault();
+      apply(read() + (e.key === grow ? 20 : -20));
+      lsSet(cfg.key, String(read()));
+    });
+  }
+
+  makeResizer($('gotify-resize'), { axis: 'x', min: 200, max: () => 800, key: 'gotify-width', initial: 380 });
+  makeResizer($('gotify-resize-bottom'), { axis: 'y', min: 150, max: () => Math.max(150, window.innerHeight - 100), key: 'gotify-height', initial: 400 });
 
   connectLive();
-  setInterval(fetchOnce, 60000);
+  setInterval(() => { if (sseState !== 'live') fetchOnce(); }, 60000);
 
-  document.addEventListener('click', () => {
-    document.querySelectorAll('.monitor-menu').forEach((m) => { m.hidden = true; });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.monitor')) closeMonitorMenus();
   });
 
   fetch('/api/health').then((r) => r.json()).then((h) => {
     if (h && h.version) {
-      const v = document.getElementById('app-version');
+      const v = $('app-version');
       if (v) v.textContent = h.version;
     }
   }).catch(() => { /* sin version: se queda vacio */ });
 
-  fetch('/api/config').then((r) => r.json()).then((cfg) => {
-    beszelUrl = cfg.beszelUrl || null;
-    const bgUrl = cfg.bgImage || localStorage.getItem('bg-image');
-    if (bgUrl) {
-      document.documentElement.style.setProperty('--bg-image', `url("${bgUrl}")`);
+  /* ------------------------------- background ------------------------------- */
+
+  const bgInput = $('bg-input');
+
+  function applyBg(url) {
+    const safe = url ? safeImageUrl(url) : null;
+    if (safe) {
+      document.documentElement.style.setProperty('--bg-image', cssUrl(safe));
       document.body.classList.remove('no-bg-image');
-    } else {
-      document.body.classList.add('no-bg-image');
+      return true;
     }
-    const bgInput = document.getElementById('bg-input');
+    document.documentElement.style.removeProperty('--bg-image');
+    document.body.classList.add('no-bg-image');
+    return false;
+  }
+
+  function saveBg(patch) {
+    postJson('/api/config/bg', patch).catch(warn('config'));
+  }
+
+  function setBlur(v) {
+    document.documentElement.style.setProperty('--bg-blur', v + 'px');
+    setText($('blur-value'), v + 'px');
+  }
+
+  fetch('/api/config').then((r) => r.json()).then((cfg) => {
+    beszelUrl = safeHttpUrl(cfg.beszelUrl);
+    applyBg(cfg.bgImage || lsGet('bg-image'));
     if (cfg.bgImage) bgInput.value = cfg.bgImage;
-    const blurVal = localStorage.getItem('bg-blur') || cfg.bgBlur || 20;
-    document.documentElement.style.setProperty('--bg-blur', blurVal + 'px');
-    const blurSlider = document.getElementById('bg-blur');
-    const blurValue = document.getElementById('blur-value');
-    blurSlider.value = blurVal;
-    blurValue.textContent = blurVal + 'px';
+    const blurVal = lsGet('bg-blur') || cfg.bgBlur || 20;
+    $('bg-blur').value = blurVal;
+    setBlur(blurVal);
     if (cfg.bgPresets && cfg.bgPresets.length) renderBgPresets(cfg.bgPresets);
   }).catch(() => { document.body.classList.add('no-bg-image'); });
 
-  const bgInput = document.getElementById('bg-input');
-  const savedBg = localStorage.getItem('bg-image');
+  const savedBg = lsGet('bg-image');
   if (savedBg) bgInput.value = savedBg;
 
-  settingsBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    settingsDropdown.hidden = !settingsDropdown.hidden;
-    notifDropdown.hidden = true;
-  });
+  function bgInputInvalid(invalid) {
+    if (invalid) bgInput.setAttribute('aria-invalid', 'true'); else bgInput.removeAttribute('aria-invalid');
+  }
 
-  document.getElementById('bg-apply').addEventListener('click', () => {
+  $('bg-apply').addEventListener('click', () => {
     const url = bgInput.value.trim();
     if (!url) return;
-    localStorage.setItem('bg-image', url);
-    fetch('/api/config/bg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bgImage: url }) });
-    document.documentElement.style.setProperty('--bg-image', `url("${url}")`);
-    document.body.classList.remove('no-bg-image');
+    if (!safeImageUrl(url)) { bgInputInvalid(true); bgInput.focus(); return; }
+    bgInputInvalid(false);
+    lsSet('bg-image', url);
+    saveBg({ bgImage: url });
+    applyBg(url);
   });
 
-  document.getElementById('bg-clear').addEventListener('click', () => {
-    localStorage.removeItem('bg-image');
+  $('bg-clear').addEventListener('click', () => {
+    lsRemove('bg-image');
     bgInput.value = '';
-    fetch('/api/config/bg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bgImage: null }) });
-    fetch('/api/config').then((r) => r.json()).then((cfg) => {
-      if (cfg.bgImage) {
-        document.documentElement.style.setProperty('--bg-image', `url("${cfg.bgImage}")`);
-      } else {
-        document.body.classList.add('no-bg-image');
-        document.documentElement.style.removeProperty('--bg-image');
-      }
-    }).catch(() => {
-      document.body.classList.add('no-bg-image');
-      document.documentElement.style.removeProperty('--bg-image');
-    });
+    bgInputInvalid(false);
+    saveBg({ bgImage: null });
+    fetch('/api/config').then((r) => r.json()).then((cfg) => { applyBg(cfg.bgImage); }).catch(() => { applyBg(null); });
   });
 
-  document.getElementById('bg-file').addEventListener('change', (e) => {
+  $('bg-file').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result;
-      localStorage.setItem('bg-image', dataUrl);
-      fetch('/api/config/bg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bgImage: dataUrl }) });
-      document.documentElement.style.setProperty('--bg-image', `url("${dataUrl}")`);
-      document.body.classList.remove('no-bg-image');
+      if (!safeImageUrl(dataUrl)) return;
+      lsSet('bg-image', dataUrl);
+      saveBg({ bgImage: dataUrl });
+      applyBg(dataUrl);
       bgInput.value = dataUrl;
     };
     reader.readAsDataURL(file);
   });
 
-  const blurSlider = document.getElementById('bg-blur');
-  blurSlider.addEventListener('input', () => {
-    const v = blurSlider.value;
-    document.getElementById('blur-value').textContent = v + 'px';
-    document.documentElement.style.setProperty('--bg-blur', v + 'px');
-    localStorage.setItem('bg-blur', v);
-    fetch('/api/config/bg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bgBlur: Number(v) }) });
+  // El slider solo previsualiza mientras se arrastra; se guarda al soltar.
+  const blurSlider = $('bg-blur');
+  blurSlider.addEventListener('input', () => setBlur(blurSlider.value));
+  blurSlider.addEventListener('change', () => {
+    lsSet('bg-blur', blurSlider.value);
+    saveBg({ bgBlur: Number(blurSlider.value) });
   });
 
   /* ------------------------------- background presets ------------------------------- */
@@ -1124,289 +1360,285 @@
 
   function renderBgPresets(presets) {
     bgPresets = presets || [];
-    const box = document.getElementById('bg-presets');
-    if (!box) return;
-    box.textContent = '';
+    const box = $('bg-presets');
+    box.replaceChildren();
     if (!bgPresets.length) {
       box.hidden = true;
       return;
     }
     box.hidden = false;
-    for (let i = 0; i < bgPresets.length; i++) {
-      const p = bgPresets[i];
+    bgPresets.forEach((p, i) => {
       const item = el('div', 'bg-preset');
-      const thumb = el('div', 'bg-preset-thumb');
-      thumb.style.backgroundImage = 'url("' + p.url + '")';
-      item.appendChild(thumb);
-      item.appendChild(el('span', 'bg-preset-name', p.name));
+      const apply = el('button', 'bg-preset-apply');
+      apply.title = t('usePreset', { name: p.name });
+      const thumb = el('span', 'bg-preset-thumb');
+      const safe = safeImageUrl(p.url);
+      if (safe) thumb.style.backgroundImage = cssUrl(safe);
+      apply.append(thumb, el('span', 'bg-preset-name', p.name));
+      apply.addEventListener('click', () => {
+        if (!safe) return;
+        lsSet('bg-image', p.url);
+        saveBg({ bgImage: p.url });
+        applyBg(p.url);
+        bgInput.value = p.url;
+      });
       const rm = el('button', 'bg-preset-rm', '×');
-      rm.addEventListener('click', (ev) => {
-        ev.stopPropagation();
+      rm.setAttribute('aria-label', t('removePreset', { name: p.name }));
+      rm.addEventListener('click', () => {
         bgPresets.splice(i, 1);
-        saveBgPresets();
+        saveBg({ bgPresets });
         renderBgPresets(bgPresets);
       });
-      item.appendChild(rm);
-      item.addEventListener('click', () => {
-        localStorage.setItem('bg-image', p.url);
-        fetch('/api/config/bg', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bgImage: p.url }) });
-        document.documentElement.style.setProperty('--bg-image', 'url("' + p.url + '")');
-        document.body.classList.remove('no-bg-image');
-        document.getElementById('bg-input').value = p.url;
-      });
+      item.append(apply, rm);
       box.appendChild(item);
-    }
+    });
   }
 
-  function saveBgPresets() {
-    fetch('/api/config/bg', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bgPresets }),
-    }).catch(() => {});
-  }
-
-  document.getElementById('bg-save-preset').addEventListener('click', () => {
-    const url = document.getElementById('bg-input').value.trim();
+  $('bg-save-preset').addEventListener('click', async () => {
+    const url = bgInput.value.trim();
     if (!url) return;
-    const name = prompt(t('backgroundPrompt'), t('backgroundName', { count: bgPresets.length + 1 }));
+    if (!safeImageUrl(url)) { bgInputInvalid(true); bgInput.focus(); return; }
+    const name = await ask({ message: t('backgroundPrompt'), input: true, value: t('backgroundName', { count: bgPresets.length + 1 }), okLabel: t('save') });
     if (!name) return;
     bgPresets.push({ name, url });
-    saveBgPresets();
+    saveBg({ bgPresets });
     renderBgPresets(bgPresets);
   });
 
-  let monitorUrlsData = {};
-  const cfgPopup = el('div', 'monitor-cfg-popup');
+  /* ------------------------------- monitor links popup ------------------------------- */
+
+  const cfgPopup = el('form', 'monitor-cfg-popup');
+  cfgPopup.setAttribute('role', 'dialog');
+  cfgPopup.setAttribute('aria-label', t('monitorLinks'));
+  cfgPopup.noValidate = true;
   cfgPopup.hidden = true;
   document.body.appendChild(cfgPopup);
+  let cfgAnchor = null;
+
+  function closeCfgPopup() {
+    if (cfgPopup.hidden) return;
+    cfgPopup.hidden = true;
+    if (cfgAnchor) {
+      cfgAnchor.setAttribute('aria-expanded', 'false');
+      if (document.activeElement === document.body || cfgPopup.contains(document.activeElement)) cfgAnchor.focus();
+    }
+  }
+
+  function cfgEntryRow(u) {
+    const row = el('div', 'cfg-entry');
+    const label = el('input', 'cfg-input cfg-label');
+    label.type = 'text'; label.value = u.label || ''; label.placeholder = t('label');
+    label.setAttribute('aria-label', t('linkLabel'));
+    const url = el('input', 'cfg-input cfg-url');
+    url.type = 'url'; url.value = u.url || ''; url.placeholder = 'https://...';
+    url.setAttribute('aria-label', t('linkUrl'));
+    const rm = el('button', 'cfg-rm', '×');
+    rm.setAttribute('aria-label', t('removeLink'));
+    rm.addEventListener('click', () => row.remove());
+    row.append(label, url, rm);
+    return row;
+  }
 
   function renderCfgPopup(name) {
-    cfgPopup.textContent = '';
-    const urls = monitorUrlsData[name] || [];
+    cfgPopup.replaceChildren();
+    cfgPopup.dataset.name = name;
     const entries = el('div', 'cfg-entries');
-    for (let i = 0; i < urls.length; i++) {
-      const u = urls[i];
-      const row = el('div', 'cfg-entry');
-      const label = el('input', 'cfg-input cfg-label');
-      label.type = 'text'; label.value = u.label || ''; label.placeholder = t('label');
-      const url = el('input', 'cfg-input cfg-url');
-      url.type = 'text'; url.value = u.url || ''; url.placeholder = 'https://...';
-      const rm = el('button', 'cfg-rm', '×');
-      rm.addEventListener('click', (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        urls.splice(i, 1);
-        row.remove();
-      });
-      row.appendChild(label); row.appendChild(url); row.appendChild(rm);
-      entries.appendChild(row);
-    }
+    for (const u of monitorUrlsData[name] || []) entries.appendChild(cfgEntryRow(u));
     cfgPopup.appendChild(entries);
     const addBtn = el('button', 'cfg-add', t('add'));
-    addBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (!monitorUrlsData[name]) monitorUrlsData[name] = [];
-      monitorUrlsData[name].push({ label: '', url: '' });
-      renderCfgPopup(name);
+    addBtn.addEventListener('click', () => {
+      const row = cfgEntryRow({ label: '', url: '' });
+      entries.appendChild(row);
+      row.querySelector('.cfg-label').focus();
     });
     cfgPopup.appendChild(addBtn);
     const saveBtn = el('button', 'cfg-save', t('save'));
-    saveBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const newUrls = [];
-      entries.querySelectorAll('.cfg-entry').forEach((row2) => {
-        const l = row2.querySelector('.cfg-label').value.trim();
-        const u2 = row2.querySelector('.cfg-url').value.trim();
-        if (u2) newUrls.push({ label: l || t('open'), url: u2 });
-      });
-      if (newUrls.length) monitorUrlsData[name] = newUrls; else delete monitorUrlsData[name];
-      fetch('/api/monitor-urls', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ urls: monitorUrlsData }),
-      }).then(() => {
-        cfgPopup.hidden = true;
-      }).catch(() => {});
-    });
+    saveBtn.type = 'submit';
     cfgPopup.appendChild(saveBtn);
   }
 
+  cfgPopup.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = cfgPopup.dataset.name;
+    const newUrls = [];
+    let invalid = null;
+    cfgPopup.querySelectorAll('.cfg-entry').forEach((row) => {
+      const l = row.querySelector('.cfg-label').value.trim();
+      const urlInput = row.querySelector('.cfg-url');
+      const u = urlInput.value.trim();
+      urlInput.removeAttribute('aria-invalid');
+      if (!u) return;
+      if (!safeHttpUrl(u)) {
+        urlInput.setAttribute('aria-invalid', 'true');
+        if (!invalid) invalid = urlInput;
+        return;
+      }
+      newUrls.push({ label: l || t('open'), url: u });
+    });
+    if (invalid) { invalid.focus(); return; }
+    const next = { ...monitorUrlsData };
+    if (newUrls.length) next[name] = newUrls; else delete next[name];
+    postJson('/api/monitor-urls', { urls: next }).then(() => {
+      monitorUrlsData = next;
+      syncAllMonitorLinks();
+      closeCfgPopup();
+    }).catch(warn('monitor-urls'));
+  });
+
   function openCfgPopup(name, anchor) {
-    document.querySelectorAll('.monitor-menu').forEach((m2) => { m2.hidden = true; });
-    cfgPopup.hidden = true;
+    closeMonitorMenus();
+    closeBookmarkPopup();
     renderCfgPopup(name);
+    cfgAnchor = anchor;
+    anchor.setAttribute('aria-expanded', 'true');
     const row = anchor.closest('.monitor');
     const rect = row ? row.getBoundingClientRect() : anchor.getBoundingClientRect();
     cfgPopup.style.position = 'fixed';
-    cfgPopup.style.top = rect.top + 'px';
-    cfgPopup.style.left = rect.left + (rect.width / 2) - 140 + 'px';
+    cfgPopup.style.top = Math.max(8, rect.top) + 'px';
+    cfgPopup.style.left = Math.max(8, Math.min(rect.left + (rect.width / 2) - 140, window.innerWidth - 296)) + 'px';
     cfgPopup.hidden = false;
+    const first = cfgPopup.querySelector('input') || cfgPopup.querySelector('.cfg-add');
+    if (first) first.focus();
   }
 
   document.addEventListener('click', (e) => {
     if (cfgPopup.hidden) return;
     if (e.target.closest('.monitor-cfg-popup') || e.target.closest('.monitor-cfg')) return;
-    cfgPopup.hidden = true;
+    closeCfgPopup();
   });
 
   fetch('/api/monitor-urls').then((r) => r.json()).then((data) => {
     monitorUrlsData = data.urls || {};
+    syncAllMonitorLinks();
   }).catch(() => {});
 
+  /* ------------------------------- bookmarks ------------------------------- */
+
   let bookmarks = [];
-  const bookmarksList = document.getElementById('bookmarks-list');
-  const bookmarkAddBtn = document.getElementById('bookmark-add');
+  const bookmarksList = $('bookmarks-list');
+  const bookmarkAddBtn = $('bookmark-add');
+
+  function bookmarkIcon(b) {
+    const ico = el('span', 'bookmark-ico');
+    const src = b.icon && /^(data:image\/|https?:\/\/)/.test(b.icon) ? safeImageUrl(b.icon) : null;
+    if (src) {
+      const img = cdnImg(src);
+      img.onerror = () => { img.hidden = true; };
+      ico.appendChild(img);
+    } else if (b.icon) {
+      ico.textContent = b.icon;
+    } else {
+      ico.textContent = (b.title || b.url || '?').slice(0, 2).toUpperCase();
+    }
+    return ico;
+  }
 
   function renderBookmarks() {
-    bookmarksList.textContent = '';
-    for (let i = 0; i < bookmarks.length; i++) {
-      const b = bookmarks[i];
+    bookmarksList.replaceChildren();
+    bookmarks.forEach((b, i) => {
       const row = el('div', 'bookmark-item');
-      const ico = el('span', 'bookmark-ico');
-      if (b.icon && (b.icon.startsWith('data:') || b.icon.startsWith('http'))) {
-        const img = document.createElement('img');
-        img.src = b.icon; img.style.cssText = 'width:100%;height:100%;border-radius:6px;object-fit:contain;';
-        img.onerror = () => { img.style.display = 'none'; };
-        ico.appendChild(img);
-      } else if (b.icon) {
-        ico.textContent = b.icon;
-      } else {
-        ico.textContent = (b.title || b.url || '?').slice(0, 2).toUpperCase();
-      }
-      row.appendChild(ico);
+      const url = safeHttpUrl(b.url);
+      const link = url ? el('a', 'bookmark-link') : el('div', 'bookmark-link');
+      if (url) { link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer'; }
+      link.appendChild(bookmarkIcon(b));
       const info = el('div', 'bookmark-info');
       info.appendChild(el('span', 'bookmark-title', b.title || b.url));
       if (b.url) info.appendChild(el('span', 'bookmark-url', b.url.replace(/^https?:\/\//, '').replace(/\/$/, '')));
-      row.appendChild(info);
+      link.appendChild(info);
+      row.appendChild(link);
       const rm = el('button', 'bookmark-rm', '×');
-      rm.addEventListener('click', (e) => {
-        e.stopPropagation();
+      rm.setAttribute('aria-label', t('removeNamed', { name: b.title || b.url || t('links') }));
+      rm.addEventListener('click', () => {
         bookmarks.splice(i, 1);
         saveBookmarks();
         renderBookmarks();
       });
       row.appendChild(rm);
-      if (b.url) {
-        row.style.cursor = 'pointer';
-        activatable(row, () => { window.open(b.url, '_blank', 'noopener'); });
-      }
       bookmarksList.appendChild(row);
-    }
+    });
   }
 
   function saveBookmarks() {
-    fetch('/api/bookmarks', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ bookmarks }),
-    }).catch(() => {});
+    postJson('/api/bookmarks', { bookmarks }).catch(warn('bookmarks'));
   }
 
-  bookmarkAddBtn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    document.querySelectorAll('.bookmark-popup').forEach((p) => p.remove());
-    const popup = el('div', 'bookmark-popup');
+  let bookmarkPopup = null;
 
-    const EMOJIS = ['🖥️','📁','🔧','🌐','📡','🏠','💾','🔐','📧','🎬','🎵','📷','🎮','📊','🛠️','🚀','☁️','🔑','📦','🗂️','🍎','🐧','🪟','📱','🤖','👾','🎯','🧠','💡','🔒','🗑️','📝','🔍','⚙️','🧩','🎮','🎲','🏆','🎶','📸','🎨','🏗️','🗄️','🔌','📻','📺','📠','📟','🤖','⚙️','🧰','🧲','🔬','🔭','🧪','🧫','🌡️','⏱️','🕰️','📅','📊','📈','📉','🗂️','📋','📌','📎','✂️','🖋️','🖊️','🖋️','🖍️','📝','💼','📂','🗂️','🗓️','📇','🗃️','🗄️','📒','📕','📖','📗','📘','📙','📚','📓','📔','📰','🗞️','📑','🔖','🏷️'];
-    const SVC_ICONS = ['n8n','nextcloud','vaultwarden','beszel','portainer','upsnap','gotify','nginx-proxy-manager','deluge','downtify','jellyfin','prowlarr','radarr','sonarr','plex','emby','home-assistant','pihole','traefik','syncthing','filebrowser','flaresolverr','proxmox','qbittorrent','transmission','gitea','grafana','influxdb','mosquitto','node-red','prometheus','zabbix','wireguard','unifi','opnsense','pfsense','adguard','duckdns','cloudflare','ansible','docker','linux','windows','apple','uptime-kuma','uptimekuma','paperless','immich','mealie','authentik','crowdsec','dozzle','homepage','glance','homarr','dashy','organizr'];
-    const ICON_CDN = 'https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png';
+  function closeBookmarkPopup() {
+    if (!bookmarkPopup) return;
+    bookmarkPopup.remove();
+    bookmarkPopup = null;
+    bookmarkAddBtn.setAttribute('aria-expanded', 'false');
+    document.removeEventListener('click', onDocClickBookmark);
+    if (document.activeElement === document.body) bookmarkAddBtn.focus();
+  }
+
+  function onDocClickBookmark(ev) {
+    if (bookmarkPopup && !bookmarkPopup.contains(ev.target) && ev.target !== bookmarkAddBtn) closeBookmarkPopup();
+  }
+
+  function labelled(text, input) {
+    const wrap = el('label', 'popup-field');
+    wrap.append(el('span', 'popup-field-label', text), input);
+    return wrap;
+  }
+
+  function openBookmarkPopup() {
+    closeBookmarkPopup();
+    closeCfgPopup();
+    const popup = el('form', 'bookmark-popup');
+    popup.setAttribute('role', 'dialog');
+    popup.setAttribute('aria-label', t('addLink'));
+    popup.noValidate = true;
     let selectedIcon = '';
     const INITIAL_COUNT = 24;
 
-    const emojiLabel = el('div', 'icon-section-label', t('emojis'));
-    popup.appendChild(emojiLabel);
-    const emojiSearch = el('input', 'cfg-input svc-search');
-    emojiSearch.type = 'text'; emojiSearch.placeholder = t('searchEmoji');
-    popup.appendChild(emojiSearch);
-    const emojiGrid = el('div', 'emoji-grid');
-    popup.appendChild(emojiGrid);
-    let emojiShowAll = false;
-    let emojiMoreBtn = null;
-    const filteredEmojis = () => {
-      const q = emojiSearch.value.toLowerCase().trim();
-      const list = q ? EMOJIS.filter((e) => e.includes(q)) : EMOJIS;
-      return emojiShowAll ? list : list.slice(0, INITIAL_COUNT);
-    };
-    const renderEmojis = () => {
-      emojiGrid.innerHTML = '';
-      for (const em of filteredEmojis()) {
-        const btn = el('button', 'emoji-btn', em);
-        btn.addEventListener('click', (ev) => {
-          ev.stopPropagation();
-          popup.querySelectorAll('.emoji-btn, .svc-icon-btn').forEach((b) => b.classList.remove('active'));
-          btn.classList.add('active');
-          selectedIcon = em;
-          iconPreview.textContent = em;
-        });
-        emojiGrid.appendChild(btn);
-      }
-      if (emojiMoreBtn) { emojiMoreBtn.remove(); emojiMoreBtn = null; }
-      const q = emojiSearch.value.toLowerCase().trim();
-      const total = q ? EMOJIS.filter((e) => e.includes(q)).length : EMOJIS.length;
-      if (total > INITIAL_COUNT) {
-        const label = emojiShowAll ? t('showLess') : `${t('showMore')} (${total - INITIAL_COUNT})`;
-        emojiMoreBtn = el('button', 'show-more-btn', label);
-        emojiGrid.parentElement.insertBefore(emojiMoreBtn, emojiGrid.nextSibling);
-        emojiMoreBtn.addEventListener('click', (ev) => { ev.stopPropagation(); emojiShowAll = !emojiShowAll; renderEmojis(); renderServices(); });
-      }
-    };
-    renderEmojis();
-    emojiSearch.addEventListener('input', () => { emojiShowAll = false; renderEmojis(); });
-
-    const svcLabel = el('div', 'icon-section-label', t('services'));
-    popup.appendChild(svcLabel);
+    popup.appendChild(el('div', 'icon-section-label', t('iconService')));
     const svcSearch = el('input', 'cfg-input svc-search');
-    svcSearch.type = 'text'; svcSearch.placeholder = t('searchService');
+    svcSearch.type = 'search'; svcSearch.placeholder = t('searchService');
+    svcSearch.setAttribute('aria-label', t('searchIcon'));
     popup.appendChild(svcSearch);
     const svcGrid = el('div', 'emoji-grid');
     popup.appendChild(svcGrid);
+    const iconPreview = el('div', 'icon-preview', t('noIcon'));
     let svcShowAll = false;
     let svcMoreBtn = null;
-    const filteredSvcs = () => {
+
+    const selectIcon = (src, btn) => {
+      popup.querySelectorAll('.svc-icon-btn').forEach((b) => { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+      if (btn) { btn.classList.add('active'); btn.setAttribute('aria-pressed', 'true'); }
+      selectedIcon = src;
+      iconPreview.replaceChildren(cdnImg(src, 'icon-preview-img'));
+    };
+
+    const renderServices = () => {
       const q = svcSearch.value.toLowerCase().trim();
       const list = q ? SVC_ICONS.filter((s) => s.includes(q)) : SVC_ICONS;
-      return svcShowAll ? list : list.slice(0, INITIAL_COUNT);
-    };
-    const renderServices = () => {
-      svcGrid.innerHTML = '';
-      for (const slug of filteredSvcs()) {
+      svcGrid.replaceChildren();
+      for (const slug of svcShowAll ? list : list.slice(0, INITIAL_COUNT)) {
         const btn = el('button', 'svc-icon-btn');
-        btn.dataset.slug = slug;
-        const img = document.createElement('img');
-        img.src = `${ICON_CDN}/${slug}.png`;
-        img.alt = slug;
-        img.onerror = () => { img.style.display = 'none'; };
+        btn.title = slug;
+        btn.setAttribute('aria-label', slug);
+        btn.setAttribute('aria-pressed', String(selectedIcon === `${ICON_CDN}/${slug}.png`));
+        const img = cdnImg(`${ICON_CDN}/${slug}.png`);
+        img.onerror = () => { img.hidden = true; };
         btn.appendChild(img);
-        btn.addEventListener('click', (ev) => {
-          ev.stopPropagation();
-          popup.querySelectorAll('.emoji-btn, .svc-icon-btn').forEach((b) => b.classList.remove('active'));
-          btn.classList.add('active');
-          selectedIcon = `${ICON_CDN}/${slug}.png`;
-          iconPreview.textContent = '';
-          const prev = document.createElement('img');
-          prev.src = selectedIcon; prev.style.cssText = 'width:24px;height:24px;border-radius:4px;object-fit:contain;';
-          prev.onerror = () => { prev.style.display = 'none'; };
-          iconPreview.appendChild(prev);
-        });
+        btn.addEventListener('click', () => selectIcon(`${ICON_CDN}/${slug}.png`, btn));
         svcGrid.appendChild(btn);
       }
       if (svcMoreBtn) { svcMoreBtn.remove(); svcMoreBtn = null; }
-      const q = svcSearch.value.toLowerCase().trim();
-      const total = q ? SVC_ICONS.filter((s) => s.includes(q)).length : SVC_ICONS.length;
-      if (total > INITIAL_COUNT) {
-        const label = svcShowAll ? t('showLess') : `${t('showMore')} (${total - INITIAL_COUNT})`;
-        svcMoreBtn = el('button', 'show-more-btn', label);
-        svcGrid.parentElement.insertBefore(svcMoreBtn, svcGrid.nextSibling);
-        svcMoreBtn.addEventListener('click', (ev) => { ev.stopPropagation(); svcShowAll = !svcShowAll; renderEmojis(); renderServices(); });
+      if (list.length > INITIAL_COUNT) {
+        svcMoreBtn = el('button', 'show-more-btn', svcShowAll ? t('showLess') : `${t('showMore')} (${list.length - INITIAL_COUNT})`);
+        svcMoreBtn.addEventListener('click', () => { svcShowAll = !svcShowAll; renderServices(); });
+        svcGrid.after(svcMoreBtn);
       }
     };
     renderServices();
     svcSearch.addEventListener('input', () => { svcShowAll = false; renderServices(); });
 
-    const iconPreview = el('div', 'icon-preview');
-    iconPreview.textContent = t('noIcon');
     popup.appendChild(iconPreview);
 
-    const fileLabel = el('label', 'cfg-upload');
-    fileLabel.textContent = t('uploadPng');
+    const fileLabel = el('label', 'cfg-upload', t('uploadImage'));
     const fileInput = el('input');
     fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.hidden = true;
     fileInput.addEventListener('change', (ev) => {
@@ -1414,12 +1646,8 @@
       if (!file) return;
       const reader = new FileReader();
       reader.onload = () => {
-        selectedIcon = reader.result;
-        iconPreview.textContent = '';
-        const img = document.createElement('img');
-        img.src = selectedIcon; img.style.cssText = 'width:24px;height:24px;border-radius:4px;object-fit:cover;';
-        iconPreview.appendChild(img);
-        popup.querySelectorAll('.emoji-btn, .svc-icon-btn').forEach((b) => b.classList.remove('active'));
+        if (!safeImageUrl(reader.result)) return;
+        selectIcon(reader.result, null);
       };
       reader.readAsDataURL(file);
     });
@@ -1427,46 +1655,52 @@
     popup.appendChild(fileLabel);
 
     const titleInput = el('input', 'cfg-input');
-    titleInput.type = 'text'; titleInput.placeholder = 'Titulo';
-    popup.appendChild(titleInput);
+    titleInput.type = 'text'; titleInput.placeholder = t('title'); titleInput.autocomplete = 'off';
+    popup.appendChild(labelled(t('title'), titleInput));
 
     const urlInput = el('input', 'cfg-input');
-    urlInput.type = 'text'; urlInput.placeholder = 'https://...';
-    popup.appendChild(urlInput);
+    urlInput.type = 'url'; urlInput.placeholder = 'https://...'; urlInput.autocomplete = 'off';
+    popup.appendChild(labelled(t('url'), urlInput));
 
     const actions = el('div', 'bookmark-popup-actions');
-    const cancelBtn = el('button', 'cfg-rm', t('cancel'));
-    cancelBtn.addEventListener('click', (ev) => { ev.stopPropagation(); popup.remove(); document.removeEventListener('click', closePopup); });
+    const cancelBtn = el('button', 'cfg-cancel', t('cancel'));
+    cancelBtn.addEventListener('click', closeBookmarkPopup);
     const saveBtn = el('button', 'cfg-save', t('save'));
-    saveBtn.addEventListener('click', (ev) => {
-      ev.stopPropagation();
+    saveBtn.type = 'submit';
+    actions.append(cancelBtn, saveBtn);
+    popup.appendChild(actions);
+
+    popup.addEventListener('submit', (ev) => {
+      ev.preventDefault();
       const t = titleInput.value.trim();
       const u = urlInput.value.trim();
-      if (!t && !u) return;
+      urlInput.removeAttribute('aria-invalid');
+      if (!t && !u) { titleInput.focus(); return; }
+      if (u && !safeHttpUrl(u)) {
+        urlInput.setAttribute('aria-invalid', 'true');
+        urlInput.focus();
+        return;
+      }
       bookmarks.push({ title: t, url: u, icon: selectedIcon || undefined });
       saveBookmarks();
       renderBookmarks();
-      popup.remove();
-      document.removeEventListener('click', closePopup);
+      closeBookmarkPopup();
     });
-    actions.appendChild(cancelBtn); actions.appendChild(saveBtn);
-    popup.appendChild(actions);
 
     const rect = bookmarkAddBtn.getBoundingClientRect();
     popup.style.position = 'fixed';
     popup.style.top = rect.bottom + 4 + 'px';
-    popup.style.left = Math.min(rect.left, window.innerWidth - 260) + 'px';
+    popup.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - 266)) + 'px';
     document.body.appendChild(popup);
-
-    const closePopup = (ev) => {
-      if (!popup.contains(ev.target) && ev.target !== bookmarkAddBtn) {
-        popup.remove();
-        document.removeEventListener('click', closePopup);
-      }
-    };
-    setTimeout(() => document.addEventListener('click', closePopup), 0);
-
+    bookmarkPopup = popup;
+    bookmarkAddBtn.setAttribute('aria-expanded', 'true');
+    setTimeout(() => document.addEventListener('click', onDocClickBookmark), 0);
     titleInput.focus();
+  }
+
+  bookmarkAddBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    openBookmarkPopup();
   });
 
   fetch('/api/bookmarks').then((r) => r.json()).then((data) => {
