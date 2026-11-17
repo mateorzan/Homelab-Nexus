@@ -3,25 +3,41 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="theme-color" content="#06080d" />
   <title>Homelab</title>
+  <link rel="preload" href="/fonts/InterVariable.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="stylesheet" href="/style.css" />
+  <script src="/app.js?v=35" defer></script>
 </head>
 <body>
+  <svg class="sprite" aria-hidden="true" focusable="false">
+    <symbol id="i-server" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></symbol>
+    <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></symbol>
+    <symbol id="i-warning" viewBox="0 0 24 24"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></symbol>
+    <symbol id="i-critical" viewBox="0 0 24 24"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+    <symbol id="i-checkDouble" viewBox="0 0 24 24"><polyline points="11 5 16 10 11 15"/><polyline points="8 12 12 16 19 7"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+  </svg>
   <div class="bg-image" id="bg-image"></div>
   <div class="bg-overlay"></div>
   <div class="app">
     <header class="topbar">
       <div class="brand">
-        <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></svg></span>
-        <span class="brand-name">Homelab</span>
+        <span class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-server"/></svg></span>
+        <h1 class="brand-name">Homelab</h1>
       </div>
       <div class="top-right">
-        <span id="live-indicator" class="live"><span class="pulse-dot"></span><span class="live-text" data-i18n="live"> en vivo</span></span>
+        <span id="live-indicator" class="live" role="status"><span class="pulse-dot"></span><span class="live-text" data-i18n="live"> en vivo</span></span>
         <span id="last-update" class="updated"></span>
         <div class="notif-wrap">
-          <button type="button" id="notif-btn" class="notif-btn" aria-label="Notificaciones" data-i18n-aria="notifications">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            <span id="notif-badge" class="notif-badge" hidden>0</span>
+          <button type="button" id="notif-btn" class="notif-btn" aria-label="Notificaciones" data-i18n-aria="notifications" aria-expanded="false" aria-controls="notif-dropdown">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-bell"/></svg>
+            <span id="notif-badge" class="notif-badge" aria-hidden="true" hidden>0</span>
           </button>
           <div id="notif-dropdown" class="notif-dropdown" hidden>
             <div class="notif-header">
@@ -32,21 +48,21 @@
           </div>
         </div>
         <div class="notif-wrap">
-          <button type="button" id="settings-btn" class="notif-btn" aria-label="Configuración" data-i18n-aria="settings">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <button type="button" id="settings-btn" class="notif-btn" aria-label="Configuración" data-i18n-aria="settings" aria-expanded="false" aria-controls="settings-dropdown">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-gear"/></svg>
           </button>
           <div id="settings-dropdown" class="notif-dropdown settings-dropdown" hidden>
             <div class="notif-header" data-i18n="settings">Configuración</div>
             <div class="settings-body">
               <label class="settings-label" for="language-select" data-i18n="language">Idioma</label>
-              <select id="language-select" class="settings-language" aria-label="Idioma" data-i18n-aria="language">
+              <select id="language-select" class="settings-language">
                 <option value="es">Español</option>
                 <option value="en">English</option>
               </select>
-              <label class="settings-label" data-i18n="backgroundImage">Imagen de fondo</label>
-              <input id="bg-input" class="search" placeholder="URL de la imagen..." data-i18n-placeholder="backgroundUrlPlaceholder" />
+              <label class="settings-label" for="bg-input" data-i18n="backgroundImage">Imagen de fondo</label>
+              <input id="bg-input" class="search" type="url" placeholder="URL de la imagen..." data-i18n-placeholder="backgroundUrlPlaceholder" autocomplete="off" />
               <label class="settings-upload">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-upload"/></svg>
                 <span data-i18n="uploadFile">Subir archivo</span>
                 <input id="bg-file" type="file" accept="image/*" hidden />
               </label>
@@ -56,60 +72,56 @@
                 <button type="button" id="bg-save-preset" class="chip-chip" data-i18n="savePreset">Guardar como preset</button>
               </div>
               <div id="bg-presets" class="bg-presets" hidden></div>
-              <label class="settings-label" data-i18n="backgroundBlur">Desenfoque del fondo</label>
+              <label class="settings-label" for="bg-blur" data-i18n="backgroundBlur">Desenfoque del fondo</label>
               <div class="settings-blur">
                 <input id="bg-blur" type="range" min="0" max="30" value="20" />
-                <span id="blur-value">20px</span>
+                <output id="blur-value" for="bg-blur">20px</output>
               </div>
             </div>
           </div>
         </div>
-        <div id="status" class="pill"><span class="dot"></span><span id="status-text" data-i18n="loading">Cargando…</span></div>
+        <div id="status" class="pill" role="status"><span class="dot"></span><span id="status-text" data-i18n="loading">Cargando…</span></div>
       </div>
     </header>
 
-    <!-- Hero: estado global + metricas clave -->
-    <section class="hero">
+    <section class="hero" aria-label="Resumen" data-i18n-aria="summary">
       <div class="hero-left">
         <div id="hero-status" class="hero-status" data-i18n="loading">Cargando</div>
       </div>
-      <div id="overview" class="hero-stats"></div>
+      <dl id="overview" class="hero-stats"></dl>
     </section>
 
-    <div id="error" class="loader" hidden></div>
-    <div id="loading" class="loader" data-i18n="loadingDashboard">Cargando estado del homelab…</div>
+    <div id="error" class="loader" role="alert" hidden></div>
+    <div id="loading" class="loader" role="status" data-i18n="loadingDashboard">Cargando estado del homelab…</div>
 
     <div class="layout">
-      <aside id="bookmarks-wrap" class="bookmarks-panel">
+      <aside id="bookmarks-wrap" class="bookmarks-panel" aria-label="Enlaces" data-i18n-aria="links">
         <div class="section-head">
           <h2 data-i18n="links">Enlaces</h2>
-          <button type="button" id="bookmark-add" class="bookmark-add-btn" title="Añadir enlace" data-i18n-title="addLink" data-i18n-aria="addLink">+</button>
+          <button type="button" id="bookmark-add" class="bookmark-add-btn" aria-label="Añadir enlace" aria-haspopup="dialog" title="Añadir enlace" data-i18n-aria="addLink" data-i18n-title="addLink">+</button>
         </div>
         <div id="bookmarks-list" class="bookmarks-list"></div>
       </aside>
 
       <main class="main">
-        <!-- Sistemas (Beszel) -->
         <section id="beszel-wrap" class="block" hidden>
           <div class="section-head"><h2 data-i18n="systems">Sistemas</h2><span id="beszel-count" class="sub"></span></div>
           <div id="beszel" class="nodes"></div>
         </section>
 
-        <!-- Sistemas (Uptime Kuma) -->
         <section id="kuma-wrap" class="block" hidden>
           <div class="section-head"><h2 data-i18n="monitors">Monitores</h2><span id="kuma-count" class="sub"></span></div>
           <div id="kuma" class="monitors"></div>
         </section>
       </main>
 
-      <!-- Gotify sidebar -->
-      <aside id="gotify-wrap" class="sidebar" hidden>
-        <div class="sidebar-resize sidebar-resize-left" id="gotify-resize"></div>
-        <div class="sidebar-resize sidebar-resize-bottom" id="gotify-resize-bottom"></div>
+      <aside id="gotify-wrap" class="sidebar" aria-label="Gotify" hidden>
+        <div class="sidebar-resize sidebar-resize-left" id="gotify-resize" role="separator" aria-orientation="vertical" aria-label="Cambiar el ancho del panel de Gotify" data-i18n-aria="resizeWidth" tabindex="0"></div>
+        <div class="sidebar-resize sidebar-resize-bottom" id="gotify-resize-bottom" role="separator" aria-orientation="horizontal" aria-label="Cambiar el alto del panel de Gotify" data-i18n-aria="resizeHeight" tabindex="0"></div>
         <div class="sidebar-inner">
           <div class="section-head"><h2>Gotify</h2></div>
           <div class="tools">
-            <input id="gotify-search" class="search" placeholder="Buscar…" data-i18n-placeholder="searchPlaceholder" />
+            <input id="gotify-search" class="search" type="search" aria-label="Buscar mensajes" data-i18n-aria="searchMessages" placeholder="Buscar…" data-i18n-placeholder="searchPlaceholder" autocomplete="off" />
             <select id="gotify-priority-level" class="prio-select" aria-label="Filtrar por prioridad" data-i18n-aria="filterByPriority">
               <option value="all" data-i18n="priorityAll">Prioridad: todas</option>
               <option value="critical" data-i18n="priorityCritical">Prioridad: críticas</option>
@@ -124,19 +136,28 @@
       </aside>
     </div>
   </div>
-  <div id="app-version" class="app-version" title="Versión desplegada" data-i18n-title="deployedVersion"></div>
-  <div id="svc-alert-banner" class="svc-alert-banner" hidden>
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+  <footer id="app-version" class="app-version" title="Versión desplegada" data-i18n-title="deployedVersion"></footer>
+  <div id="svc-alert-banner" class="svc-alert-banner" role="alert" hidden>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-warning"/></svg>
     <span id="svc-alert-text"></span>
-    <button type="button" id="svc-alert-close" class="svc-alert-close" aria-label="Cerrar" data-i18n-aria="close">×</button>
+    <button type="button" id="svc-alert-close" class="svc-alert-close" aria-label="Cerrar aviso" data-i18n-aria="closeNotice">×</button>
   </div>
-  <div id="notif-detail-popup" class="notif-detail-popup" hidden>
+  <dialog id="notif-detail-popup" class="notif-detail-popup" aria-labelledby="notif-detail-title" closedby="any">
     <div class="notif-detail-header">
       <span id="notif-detail-title"></span>
-      <button type="button" class="notif-detail-close" aria-label="Cerrar" data-i18n-aria="close">×</button>
+      <button type="button" class="notif-detail-close" aria-label="Cerrar detalle" data-i18n-aria="closeDetail">×</button>
     </div>
     <div id="notif-detail-body" class="notif-detail-body"></div>
-  </div>
-  <script src="/app.js?v=35"></script>
+  </dialog>
+  <dialog id="ask-dialog" class="ask-dialog" aria-labelledby="ask-message">
+    <form id="ask-form" class="ask-form">
+      <p id="ask-message" class="ask-message"></p>
+      <input id="ask-input" class="cfg-input" type="text" aria-labelledby="ask-message" autocomplete="off" hidden />
+      <div class="ask-actions">
+        <button type="button" id="ask-cancel" class="ask-btn" data-i18n="cancel">Cancelar</button>
+        <button type="submit" id="ask-ok" class="ask-btn primary" data-i18n="accept">Aceptar</button>
+      </div>
+    </form>
+  </dialog>
 </body>
 </html>

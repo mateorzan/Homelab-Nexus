@@ -80,10 +80,6 @@ function makeFetchMock() {
 
 const flush = () => new Promise((r) => setTimeout(r, 20));
 
-function pressEnter(node: Element): void {
-  node.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-}
-
 function pressEscape(): void {
   document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 }
@@ -116,24 +112,64 @@ describe('UI accesibilidad (teclado)', () => {
     vi.unstubAllGlobals();
   });
 
-  it('los nodos de Beszel son operables con el teclado', () => {
-    const node = document.querySelector('.node') as HTMLElement;
+  it('los nodos de Beszel son enlaces reales (teclado, clic central, copiar enlace)', () => {
+    const node = document.querySelector('a.node') as HTMLAnchorElement;
     expect(node).toBeTruthy();
-    expect(node.getAttribute('role')).toBe('button');
-    expect(node.tabIndex).toBe(0);
-
-    pressEnter(node);
-    expect(open).toHaveBeenCalledWith('http://beszel.local', '_blank', 'noopener');
+    expect(node.getAttribute('href')).toBe('http://beszel.local');
+    expect(node.target).toBe('_blank');
+    expect(node.rel).toContain('noopener');
+    expect(node.getAttribute('role')).toBeNull();
   });
 
-  it('los bookmarks son operables con el teclado', () => {
-    const row = document.querySelector('.bookmark-item') as HTMLElement;
-    expect(row).toBeTruthy();
-    expect(row.getAttribute('role')).toBe('button');
-    expect(row.tabIndex).toBe(0);
+  it('los bookmarks son enlaces reales y el boton de quitar es hermano, no hijo', () => {
+    const link = document.querySelector('a.bookmark-link') as HTMLAnchorElement;
+    expect(link).toBeTruthy();
+    expect(link.getAttribute('href')).toBe('http://nas.local');
+    expect(link.querySelector('button')).toBeNull();
+    const rm = document.querySelector('.bookmark-rm') as HTMLButtonElement;
+    expect(rm.getAttribute('aria-label')).toBe('Quitar NAS');
+    expect(open).not.toHaveBeenCalled();
+  });
 
-    pressEnter(row);
-    expect(open).toHaveBeenCalledWith('http://nas.local', '_blank', 'noopener');
+  it('los botones de los dropdowns exponen aria-expanded y el badge entra en el nombre accesible', () => {
+    const btn = document.getElementById('notif-btn')!;
+    const dd = document.getElementById('notif-dropdown')!;
+    expect(btn.getAttribute('aria-expanded')).toBe('false');
+    expect(btn.getAttribute('aria-label')).toBe('Notificaciones, 1 sin leer');
+    btn.click();
+    expect(dd.hidden).toBe(false);
+    expect(btn.getAttribute('aria-expanded')).toBe('true');
+    pressEscape();
+    expect(btn.getAttribute('aria-expanded')).toBe('false');
+  });
+
+  it('el foco del teclado sobrevive a los re-renders de SSE (regresion: se reconstruia el DOM cada segundo)', async () => {
+    const btn = document.getElementById('notif-btn')!;
+    btn.click();
+    const action = document.querySelector('.notif-action') as HTMLButtonElement;
+    action.focus();
+    expect(document.activeElement).toBe(action);
+
+    FakeEventSource.last?.emit(summaryFixture());
+    await flush();
+    FakeEventSource.last?.emit(summaryFixture());
+    await flush();
+
+    expect(document.activeElement).toBe(action);
+    expect(document.querySelector('.notif-action')).toBe(action);
+    const node = document.querySelector('a.node');
+    FakeEventSource.last?.emit(summaryFixture());
+    await flush();
+    expect(document.querySelector('a.node')).toBe(node);
+    document.getElementById('notif-btn')!.click();
+  });
+
+  it('los ajustes no aceptan una URL de fondo con esquema javascript:', () => {
+    const input = document.getElementById('bg-input') as HTMLInputElement;
+    input.value = 'javascript:alert(1)';
+    (document.getElementById('bg-apply') as HTMLButtonElement).click();
+    expect(input.getAttribute('aria-invalid')).toBe('true');
+    expect(document.documentElement.style.getPropertyValue('--bg-image')).not.toContain('javascript');
   });
 
   it('Escape cierra el dropdown de Configuración', () => {

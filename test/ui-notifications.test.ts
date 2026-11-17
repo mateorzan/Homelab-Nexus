@@ -168,7 +168,7 @@ describe('UI notificaciones (dropdown de alertas)', () => {
     FakeEventSource.last?.emit(summaryFixture());
     await flush();
 
-    const item = document.querySelector('.notif-item.critical') as HTMLElement;
+    const item = document.querySelector('.notif-item.critical .notif-item-main') as HTMLElement;
     expect(item).toBeTruthy();
 
     item.click();
@@ -176,7 +176,7 @@ describe('UI notificaciones (dropdown de alertas)', () => {
 
     const popup = document.querySelector('.notif-detail-popup') as HTMLElement;
     expect(popup).toBeTruthy();
-    expect(popup.hidden).toBe(false);
+    expect(popup.hasAttribute('open')).toBe(true);
     expect(popup.textContent).toContain('Gotify · Backup');
     expect(popup.textContent).toContain('Backup falló');
   });
@@ -190,7 +190,7 @@ describe('UI notificaciones (dropdown de alertas)', () => {
     closeBtn.click();
     await flush();
 
-    expect(popup.hidden).toBe(true);
+    expect(popup.hasAttribute('open')).toBe(false);
   });
 
   it('pinta las alertas de infraestructura y el estado queda en ambar, no en rojo', async () => {

@@ -62,22 +62,87 @@ const ALERT_STATE_BODY_SCHEMA = {
 // Fastify (1MB) cualquier foto real fallaba con 413 en silencio.
 const MAX_BODY_BYTES = 8 * 1024 * 1024;
 
+const URL_CHARS = '[^\\s"\'<>\\\\]+';
+const HTTP_URL_PATTERN = `^https?://${URL_CHARS}$`;
+const BG_IMAGE_PATTERN = `^(https?://${URL_CHARS}|data:image/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+)$`;
+const OPTIONAL_HTTP_URL_PATTERN = `^(https?://${URL_CHARS})?$`;
+const ICON_PATTERN = `^(https?://${URL_CHARS}|data:image/[a-zA-Z0-9.+-]+;base64,[A-Za-z0-9+/=]+|[^<>\\s]{1,16})$`;
+
 const BG_CONFIG_BODY_SCHEMA = {
   type: 'object',
   properties: {
-    bgImage: { type: ['string', 'null'] },
+    bgImage: { anyOf: [{ type: 'string', maxLength: 7_000_000, pattern: BG_IMAGE_PATTERN }, { type: 'null' }] },
     bgBlur: { type: 'number', minimum: 0, maximum: 100 },
     bgPresets: {
       type: 'array',
       items: {
         type: 'object',
-        properties: { name: { type: 'string', minLength: 1 }, url: { type: 'string', minLength: 1 } },
+        properties: { name: { type: 'string', minLength: 1, maxLength: 80 }, url: { type: 'string', maxLength: 7_000_000, pattern: BG_IMAGE_PATTERN } },
         required: ['name', 'url'],
       },
     },
   },
   additionalProperties: false,
 } as const;
+
+const BOOKMARKS_BODY_SCHEMA = {
+  type: 'object',
+  properties: {
+    bookmarks: {
+      type: 'array',
+      maxItems: 200,
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', maxLength: 64 },
+          title: { type: 'string', maxLength: 120 },
+          url: { type: 'string', maxLength: 2048, pattern: OPTIONAL_HTTP_URL_PATTERN },
+          icon: { type: 'string', pattern: ICON_PATTERN },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['bookmarks'],
+  additionalProperties: false,
+} as const;
+
+const MONITOR_URLS_BODY_SCHEMA = {
+  type: 'object',
+  properties: {
+    urls: {
+      type: 'object',
+      additionalProperties: {
+        type: 'array',
+        maxItems: 20,
+        items: {
+          type: 'object',
+          properties: {
+            label: { type: 'string', maxLength: 80 },
+            url: { type: 'string', maxLength: 2048, pattern: HTTP_URL_PATTERN },
+          },
+          required: ['url'],
+          additionalProperties: false,
+        },
+      },
+    },
+  },
+  required: ['urls'],
+  additionalProperties: false,
+} as const;
+
+const CSP = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self'",
+  "img-src 'self' data: blob: https: http:",
+  "connect-src 'self'",
+  "font-src 'self'",
+  "object-src 'none'",
+  "base-uri 'none'",
+  "frame-ancestors 'none'",
+  "form-action 'self'",
+].join('; ');
 
 export interface AppContext {
   aggregator: Aggregator;
@@ -131,6 +196,14 @@ export async function buildApp(ctx?: Partial<AppContext>): Promise<FastifyInstan
     }
     if (allowed) reply.header('access-control-allow-origin', origin);
     done();
+  });
+
+  app.addHook('onSend', (_req, reply, payload, done) => {
+    reply.header('content-security-policy', CSP);
+    reply.header('x-content-type-options', 'nosniff');
+    reply.header('referrer-policy', 'no-referrer');
+    reply.header('x-frame-options', 'DENY');
+    done(null, payload);
   });
 
   app.get('/api/summary', async () => {
@@ -218,11 +291,10 @@ export async function buildApp(ctx?: Partial<AppContext>): Promise<FastifyInstan
     }
   });
 
-  app.post('/api/monitor-urls', async (request) => {
-    const { urls } = request.body as { urls?: Record<string, unknown> };
-    if (!urls || typeof urls !== 'object') {
-      return { error: 'urls debe ser un objeto' };
-    }
+  app.post('/api/monitor-urls', {
+    schema: { body: MONITOR_URLS_BODY_SCHEMA },
+  }, async (request) => {
+    const { urls } = request.body as { urls: Record<string, unknown> };
     if (!fs.existsSync(CONFIG_DIR)) fs.mkdirSync(CONFIG_DIR, { recursive: true });
     fs.writeFileSync(MONITOR_URLS_PATH, JSON.stringify(urls, null, 2));
     aggregator.updateCredential('uptimekumaMonitorUrls', JSON.stringify(urls));
@@ -238,11 +310,10 @@ export async function buildApp(ctx?: Partial<AppContext>): Promise<FastifyInstan
     return { bookmarks: [] };
   });
 
-  app.post('/api/bookmarks', async (request) => {
-    const { bookmarks } = request.body as { bookmarks?: unknown[] };
-    if (!Array.isArray(bookmarks)) {
-      return { error: 'bookmarks debe ser un array' };
-    }
+  app.post('/api/bookmarks', {
+    schema: { body: BOOKMARKS_BODY_SCHEMA },
+  }, async (request) => {
+    const { bookmarks } = request.body as { bookmarks: unknown[] };
     if (!fs.existsSync(CONFIG_DIR)) fs.mkdirSync(CONFIG_DIR, { recursive: true });
     fs.writeFileSync(BOOKMARKS_PATH, JSON.stringify(bookmarks, null, 2));
     return { ok: true };
@@ -297,7 +368,10 @@ export async function buildApp(ctx?: Partial<AppContext>): Promise<FastifyInstan
       'Cache-Control': 'no-cache',
       Connection: 'keep-alive',
       'X-Accel-Buffering': 'no',
+      'Content-Security-Policy': CSP,
+      'X-Content-Type-Options': 'nosniff',
     });
+    reply.raw.write('retry: 3000\n\n');
     const send = (summary: unknown) => reply.raw.write(`data: ${JSON.stringify(summary)}\n\n`);
     aggregator.on('update', send);
     request.raw.on('close', () => aggregator.off('update', send));
