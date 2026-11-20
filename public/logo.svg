@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Homelab Nexus">
+  <rect x="2" y="2" width="124" height="124" rx="28" fill="#121a3a" stroke="#2a3a6e" stroke-width="2"/>
+  <path d="M32 92V38L72 92V38" fill="none" stroke="#e8edfa" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="82" y="85" width="20" height="9" rx="3" fill="#5aa7ff"/>
+</svg>

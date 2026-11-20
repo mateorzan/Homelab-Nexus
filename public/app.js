@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  const ICON_NAMES = ['server', 'info', 'warning', 'critical', 'check', 'checkDouble', 'undo', 'bell', 'upload', 'gear'];
+  const ICON_NAMES = ['edit', 'server', 'info', 'warning', 'critical', 'check', 'checkDouble', 'undo', 'bell', 'upload', 'gear'];
   const SVG_NS = 'http://www.w3.org/2000/svg';
 
   const $ = (id) => document.getElementById(id);
@@ -20,7 +20,7 @@
       allGood: 'Todo OK', attention: 'Atención', critical: 'Crítico', unknown: 'Cargando',
       statSystems: 'Sistemas', statCpu: 'CPU', statRam: 'RAM', statMonitors: 'Monitores', statMessages: 'Mensajes', statAlerts: 'Alertas',
       nodeCount: '{count} nodos', nodesDown: '{count} caídos', monitorCount: '{count} monitores', monitorsDown: '{count} caídos',
-      uptime24: 'Disponibilidad 24 h: {value}%', ping: 'Ping: {value} ms', statusUp: 'Activo', statusDown: 'Caído',
+      uptime24: '24 h: {value}%', ping: '{value} ms', statusUp: 'Activo', statusDown: 'Caído',
       statusPending: 'Pendiente', statusMaintenance: 'Mantenimiento', statusUnknown: 'Desconocido',
       statusUpShort: 'ACTIVO', statusDownShort: 'CAÍDO', statusPendingShort: 'PEND.', statusMaintenanceShort: 'MANT.', statusUnknownShort: 'N/D',
       open: 'Abrir', alertCritical: 'Crítico', alertWarning: 'Alerta', alertInfo: 'Info', noTitle: 'Sin título',
@@ -43,6 +43,7 @@
       accept: 'Aceptar', delete: 'Borrar', iconService: 'Icono de servicio', searchIcon: 'Buscar icono de servicio', uploadImage: 'Subir imagen',
       closeDetail: 'Cerrar detalle', closeNotice: 'Cerrar aviso', resizeWidth: 'Cambiar el ancho del panel de Gotify', resizeHeight: 'Cambiar el alto del panel de Gotify',
       searchMessages: 'Buscar mensajes', summary: 'Resumen',
+      editLink: 'Editar enlace', editNamed: 'Editar {name}', clearIcon: 'Quitar icono',
     },
     en: {
       live: ' live', reconnecting: ' reconnecting…', offline: ' offline',
@@ -56,7 +57,7 @@
       allGood: 'All good', attention: 'Attention', critical: 'Critical', unknown: 'Loading',
       statSystems: 'Systems', statCpu: 'CPU', statRam: 'RAM', statMonitors: 'Monitors', statMessages: 'Messages', statAlerts: 'Alerts',
       nodeCount: '{count} nodes', nodesDown: '{count} down', monitorCount: '{count} monitors', monitorsDown: '{count} down',
-      uptime24: 'Uptime 24h: {value}%', ping: 'Ping: {value} ms', statusUp: 'Up', statusDown: 'Down',
+      uptime24: '24h: {value}%', ping: '{value} ms', statusUp: 'Up', statusDown: 'Down',
       statusPending: 'Pending', statusMaintenance: 'Maintenance', statusUnknown: 'Unknown',
       statusUpShort: 'UP', statusDownShort: 'DOWN', statusPendingShort: 'PENDING', statusMaintenanceShort: 'MAINT.', statusUnknownShort: 'N/A',
       open: 'Open', alertCritical: 'Critical', alertWarning: 'Warning', alertInfo: 'Info', noTitle: 'Untitled',
@@ -79,6 +80,7 @@
       accept: 'OK', delete: 'Delete', iconService: 'Service icon', searchIcon: 'Search service icon', uploadImage: 'Upload image',
       closeDetail: 'Close details', closeNotice: 'Dismiss notice', resizeWidth: 'Resize the Gotify panel width', resizeHeight: 'Resize the Gotify panel height',
       searchMessages: 'Search messages', summary: 'Summary',
+      editLink: 'Edit link', editNamed: 'Edit {name}', clearIcon: 'Remove icon',
     },
   };
 
@@ -274,6 +276,19 @@
     });
   }
 
+  // Un cambio de estado (cae, se recupera) es raro y importante: la tarjeta
+  // lo marca una vez con un destello; la animacion vive en el CSS y solo
+  // corre si el usuario no pide menos movimiento.
+  function flashOnChange(node, status) {
+    const prev = node._prevStatus;
+    node._prevStatus = status;
+    if (prev === undefined || prev === status) return;
+    node.classList.remove('status-flash');
+    void node.offsetWidth;
+    node.classList.add('status-flash');
+    node.addEventListener('animationend', () => node.classList.remove('status-flash'), { once: true });
+  }
+
   /* ------------------------------- dialogs ------------------------------- */
 
   function isDialogOpen(d) { return d.hasAttribute('open'); }
@@ -405,6 +420,7 @@
   }
 
   function updateNode(node, s) {
+    flashOnChange(node, s.status);
     if (beszelUrl) node.setAttribute('href', beszelUrl); else node.removeAttribute('href');
     setClass(node._dot, 'dot ' + (s.status || 'unknown'));
     setText(node._name, s.name);
@@ -621,6 +637,7 @@
 
   function updateMonitor(row, m) {
     row._m = m;
+    flashOnChange(row, m.status);
     row._cfg.setAttribute('aria-label', t('configureLinks', { name: m.name }));
     setClass(row._dot, 'dot ' + m.status);
     setText(row._uptime, m.uptime24h != null ? t('uptime24', { value: m.uptime24h.toFixed(2) }) : '');
@@ -1503,7 +1520,9 @@
 
   document.addEventListener('click', (e) => {
     if (cfgPopup.hidden) return;
-    if (e.target.closest('.monitor-cfg-popup') || e.target.closest('.monitor-cfg')) return;
+    // composedPath: un clic en un elemento que el propio popup acaba de quitar
+    // (la x de una fila) ya no cuelga del popup cuando llega aqui.
+    if (e.composedPath().includes(cfgPopup) || e.target.closest('.monitor-cfg')) return;
     closeCfgPopup();
   });
 
@@ -1546,6 +1565,15 @@
       if (b.url) info.appendChild(el('span', 'bookmark-url', b.url.replace(/^https?:\/\//, '').replace(/\/$/, '')));
       link.appendChild(info);
       row.appendChild(link);
+      const edit = el('button', 'bookmark-edit');
+      edit.setAttribute('aria-label', t('editNamed', { name: b.title || b.url || t('links') }));
+      edit.setAttribute('aria-haspopup', 'dialog');
+      edit.appendChild(svgIcon('edit'));
+      edit.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openBookmarkPopup(i, edit);
+      });
+      row.appendChild(edit);
       const rm = el('button', 'bookmark-rm', '×');
       rm.setAttribute('aria-label', t('removeNamed', { name: b.title || b.url || t('links') }));
       rm.addEventListener('click', () => {
@@ -1563,6 +1591,7 @@
   }
 
   let bookmarkPopup = null;
+  let bookmarkOpener = null;
 
   function closeBookmarkPopup() {
     if (!bookmarkPopup) return;
@@ -1570,11 +1599,13 @@
     bookmarkPopup = null;
     bookmarkAddBtn.setAttribute('aria-expanded', 'false');
     document.removeEventListener('click', onDocClickBookmark);
-    if (document.activeElement === document.body) bookmarkAddBtn.focus();
+    const opener = bookmarkOpener && document.contains(bookmarkOpener) ? bookmarkOpener : bookmarkAddBtn;
+    bookmarkOpener = null;
+    if (document.activeElement === document.body) opener.focus();
   }
 
   function onDocClickBookmark(ev) {
-    if (bookmarkPopup && !bookmarkPopup.contains(ev.target) && ev.target !== bookmarkAddBtn) closeBookmarkPopup();
+    if (bookmarkPopup && !ev.composedPath().includes(bookmarkPopup) && ev.target !== bookmarkAddBtn) closeBookmarkPopup();
   }
 
   function labelled(text, input) {
@@ -1583,14 +1614,15 @@
     return wrap;
   }
 
-  function openBookmarkPopup() {
+  function openBookmarkPopup(editIndex, opener) {
     closeBookmarkPopup();
     closeCfgPopup();
+    const editing = editIndex != null ? bookmarks[editIndex] : null;
     const popup = el('form', 'bookmark-popup');
     popup.setAttribute('role', 'dialog');
-    popup.setAttribute('aria-label', t('addLink'));
+    popup.setAttribute('aria-label', editing ? t('editLink') : t('addLink'));
     popup.noValidate = true;
-    let selectedIcon = '';
+    let selectedIcon = (editing && editing.icon) || '';
     const INITIAL_COUNT = 24;
 
     popup.appendChild(el('div', 'icon-section-label', t('iconService')));
@@ -1600,7 +1632,13 @@
     popup.appendChild(svcSearch);
     const svcGrid = el('div', 'emoji-grid');
     popup.appendChild(svcGrid);
-    const iconPreview = el('div', 'icon-preview', t('noIcon'));
+    const iconPreview = el('div', 'icon-preview');
+    const showPreview = () => {
+      const src = selectedIcon && /^(data:image\/|https?:\/\/)/.test(selectedIcon) ? safeImageUrl(selectedIcon) : null;
+      if (src) iconPreview.replaceChildren(cdnImg(src, 'icon-preview-img'));
+      else iconPreview.textContent = selectedIcon || t('noIcon');
+    };
+    showPreview();
     let svcShowAll = false;
     let svcMoreBtn = null;
 
@@ -1608,7 +1646,7 @@
       popup.querySelectorAll('.svc-icon-btn').forEach((b) => { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
       if (btn) { btn.classList.add('active'); btn.setAttribute('aria-pressed', 'true'); }
       selectedIcon = src;
-      iconPreview.replaceChildren(cdnImg(src, 'icon-preview-img'));
+      showPreview();
     };
 
     const renderServices = () => {
@@ -1637,6 +1675,13 @@
     svcSearch.addEventListener('input', () => { svcShowAll = false; renderServices(); });
 
     popup.appendChild(iconPreview);
+    const clearIconBtn = el('button', 'show-more-btn', t('clearIcon'));
+    clearIconBtn.addEventListener('click', () => {
+      popup.querySelectorAll('.svc-icon-btn').forEach((b) => { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
+      selectedIcon = '';
+      showPreview();
+    });
+    popup.appendChild(clearIconBtn);
 
     const fileLabel = el('label', 'cfg-upload', t('uploadImage'));
     const fileInput = el('input');
@@ -1656,10 +1701,12 @@
 
     const titleInput = el('input', 'cfg-input');
     titleInput.type = 'text'; titleInput.placeholder = t('title'); titleInput.autocomplete = 'off';
+    if (editing) titleInput.value = editing.title || '';
     popup.appendChild(labelled(t('title'), titleInput));
 
     const urlInput = el('input', 'cfg-input');
     urlInput.type = 'url'; urlInput.placeholder = 'https://...'; urlInput.autocomplete = 'off';
+    if (editing) urlInput.value = editing.url || '';
     popup.appendChild(labelled(t('url'), urlInput));
 
     const actions = el('div', 'bookmark-popup-actions');
@@ -1681,17 +1728,21 @@
         urlInput.focus();
         return;
       }
-      bookmarks.push({ title: t, url: u, icon: selectedIcon || undefined });
+      const entry = { ...(editing || {}), title: t, url: u, icon: selectedIcon || undefined };
+      if (editing) bookmarks[editIndex] = entry; else bookmarks.push(entry);
       saveBookmarks();
       renderBookmarks();
       closeBookmarkPopup();
     });
 
-    const rect = bookmarkAddBtn.getBoundingClientRect();
+    const anchor = opener || bookmarkAddBtn;
+    bookmarkOpener = opener || null;
+    const rect = anchor.getBoundingClientRect();
     popup.style.position = 'fixed';
-    popup.style.top = rect.bottom + 4 + 'px';
     popup.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - 266)) + 'px';
+    popup.style.top = rect.bottom + 4 + 'px';
     document.body.appendChild(popup);
+    popup.style.top = Math.max(8, Math.min(rect.bottom + 4, window.innerHeight - popup.offsetHeight - 8)) + 'px';
     bookmarkPopup = popup;
     bookmarkAddBtn.setAttribute('aria-expanded', 'true');
     setTimeout(() => document.addEventListener('click', onDocClickBookmark), 0);

@@ -1,3 +1,5 @@
+<p align="center"><img src="image/README/logo-nexus.png" alt="Homelab Nexus" width="600" /></p>
+
 # Homelab Nexus
 
 > A self-hosted dashboard that brings your homelab services and monitoring into one place.
@@ -12,14 +14,16 @@ Homelab Nexus combines **Beszel**, **Uptime Kuma**, and **Gotify** in a lightwei
 
 ## Features
 
+- **Built as a browser start page:** what is broken rises to the top and is highlighted, and everything fits on one desktop screen.
 - **Everything in one view:** host metrics from Beszel, monitor status and latency from Uptime Kuma, and Gotify messages with infrastructure alerts.
 - **Live updates** over Server-Sent Events (SSE).
 - **Custom background:** use any image you like (URL or upload), set the blur level, and save as many backgrounds as you want to switch between them quickly.
 - **Resizable Gotify widget:** drag its edges to make it wider, narrower or taller to suit your layout. The size is remembered in your browser.
-- **Links / bookmarks:** a dedicated section where you can add any links you want, with custom labels and icons.
+- **Links / bookmarks:** a dedicated section where you can add, **edit** and remove any links you want, with custom labels and icons.
+- **Glass look:** navy theme with translucent, blurred surfaces over your own background image (the Gotify widget stays nearly opaque so it is easy to read).
 - **Alerts you can manage:** mark them as read or resolved, and review resolved ones later.
 - **English and Spanish interface:** detected from the browser language, with a selector in Settings. The choice is stored per browser.
-- **Accessible by keyboard:** links are real links, dialogs are native, focus is kept while the dashboard updates live, and animations respect `prefers-reduced-motion`.
+- **Accessible by keyboard:** links are real links, dialogs are native, focus is kept while the dashboard updates live, animations respect `prefers-reduced-motion`, and a strict Content-Security-Policy plus validated URLs keep it safe.
 - **Persistent data:** bookmarks, monitor links, alert states and background settings are kept in the data directory.
 - **Docker-ready:** the image runs as a non-root user and includes a health check; multi-arch (`amd64` and `arm64`).
 
