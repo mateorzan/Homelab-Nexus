@@ -55,6 +55,8 @@ function makeFetchMock() {
 
 const flush = () => new Promise((r) => setTimeout(r, 20));
 
+const fetchMock = makeFetchMock();
+
 describe('UI monitores (enlaces accesibles y URLs seguras)', () => {
   beforeAll(async () => {
     Object.defineProperty(navigator, 'language', { configurable: true, value: 'es-ES' });
@@ -62,7 +64,7 @@ describe('UI monitores (enlaces accesibles y URLs seguras)', () => {
     document.body.innerHTML = html
       .slice(html.indexOf('<body>') + 6, html.lastIndexOf('</body>'))
       .replace(/<script[\s\S]*?<\/script>/g, '');
-    vi.stubGlobal('fetch', makeFetchMock());
+    vi.stubGlobal('fetch', fetchMock);
     vi.stubGlobal('EventSource', FakeEventSource);
     await import(/* @vite-ignore */ '../public/app.js');
     await flush();
@@ -116,5 +118,119 @@ describe('UI monitores (enlaces accesibles y URLs seguras)', () => {
     await flush();
     expect(row('Uno').querySelector('a.monitor-link')).toBe(link);
     expect(document.activeElement).toBe(link);
+  });
+});
+
+describe('UI monitores: destello al cambiar de estado', () => {
+  it('un monitor que cambia de estado recibe status-flash una sola vez y no en el refresco siguiente', async () => {
+    const down = summaryFixture();
+    (down.services[0].metrics as { monitors: Array<{ name: string; status: string }> }).monitors[0].status = 'down';
+    FakeEventSource.last?.emit(down);
+    await flush();
+    const row = [...document.querySelectorAll('#kuma .monitor')].find((r) => r.querySelector('.monitor-name')?.textContent === 'Uno') as HTMLElement;
+    expect(row.classList.contains('status-flash')).toBe(true);
+
+    row.dispatchEvent(new Event('animationend'));
+    expect(row.classList.contains('status-flash')).toBe(false);
+
+    FakeEventSource.last?.emit(down);
+    await flush();
+    expect(row.classList.contains('status-flash')).toBe(false);
+  });
+
+  it('la primera pintura no destella (no hay estado previo)', () => {
+    const first = [...document.querySelectorAll('#kuma .monitor')].find((r) => r.querySelector('.monitor-name')?.textContent === 'Varios') as HTMLElement;
+    expect(first.classList.contains('status-flash')).toBe(false);
+  });
+});
+
+describe('UI popups: no se cierran al pulsar sus propios botones (regresion)', () => {
+  it('"Ver más" de los iconos del nuevo enlace no cierra el popup', async () => {
+    (document.getElementById('bookmark-add') as HTMLButtonElement).click();
+    await flush();
+    const popup = document.querySelector('.bookmark-popup') as HTMLElement;
+    expect(popup).toBeTruthy();
+    const more = popup.querySelector('.show-more-btn') as HTMLButtonElement;
+    expect(more).toBeTruthy();
+
+    more.click();
+    await flush();
+    expect(document.querySelector('.bookmark-popup')).toBe(popup);
+    expect(popup.querySelectorAll('.svc-icon-btn').length).toBeGreaterThan(24);
+
+    document.body.click();
+    await flush();
+    expect(document.querySelector('.bookmark-popup')).toBeNull();
+  });
+
+  it('quitar una fila del popup de enlaces del monitor no lo cierra', async () => {
+    const row = [...document.querySelectorAll('#kuma .monitor')].find((r) => r.querySelector('.monitor-name')?.textContent === 'Varios') as HTMLElement;
+    (row.querySelector('.monitor-cfg') as HTMLButtonElement).click();
+    const popup = document.querySelector('.monitor-cfg-popup') as HTMLElement;
+    expect(popup.hidden).toBe(false);
+    const before = popup.querySelectorAll('.cfg-entry').length;
+
+    (popup.querySelector('.cfg-rm') as HTMLButtonElement).click();
+    await flush();
+    expect(popup.hidden).toBe(false);
+    expect(popup.querySelectorAll('.cfg-entry').length).toBe(before - 1);
+  });
+});
+
+describe('UI enlaces: editar un enlace ya creado', () => {
+  beforeAll(() => { vi.stubGlobal('fetch', fetchMock); });
+  afterAll(() => { vi.unstubAllGlobals(); });
+
+  it('el boton de editar abre el popup relleno y guarda titulo, URL e icono sin duplicar', async () => {
+    const edit = document.querySelector('.bookmark-edit') as HTMLButtonElement;
+    expect(edit).toBeTruthy();
+    expect(edit.getAttribute('aria-label')).toBe('Editar Malo');
+    const countBefore = document.querySelectorAll('.bookmark-item').length;
+
+    edit.click();
+    await flush();
+    const popup = document.querySelector('.bookmark-popup') as HTMLElement;
+    expect(popup.getAttribute('aria-label')).toBe('Editar enlace');
+    const [titleInput, urlInput] = [...popup.querySelectorAll('.popup-field input')] as HTMLInputElement[];
+    expect(titleInput.value).toBe('Malo');
+    expect(urlInput.value).toBe('javascript:alert(1)');
+
+    urlInput.value = 'javascript:otra()';
+    popup.dispatchEvent(new Event('submit', { cancelable: true }));
+    expect(urlInput.getAttribute('aria-invalid')).toBe('true');
+    expect(document.querySelector('.bookmark-popup')).toBe(popup);
+
+    titleInput.value = 'Editado';
+    urlInput.value = 'https://ok.local';
+    (popup.querySelector('.svc-icon-btn') as HTMLButtonElement).click();
+    popup.dispatchEvent(new Event('submit', { cancelable: true }));
+    await flush();
+
+    expect(document.querySelector('.bookmark-popup')).toBeNull();
+    expect(document.querySelectorAll('.bookmark-item').length).toBe(countBefore);
+    const link = document.querySelector('a.bookmark-link') as HTMLAnchorElement;
+    expect(link.getAttribute('href')).toBe('https://ok.local');
+    expect(link.querySelector('.bookmark-title')?.textContent).toBe('Editado');
+    expect(link.querySelector('.bookmark-ico img')).toBeTruthy();
+
+    const calls = fetchMock.mock.calls.filter(([u, init]) => String(u).includes('/api/bookmarks') && init?.method === 'POST');
+    const sent = JSON.parse(String(calls[calls.length - 1][1]?.body)) as { bookmarks: Array<{ title: string; url: string; icon?: string }> };
+    expect(sent.bookmarks[0]).toMatchObject({ title: 'Editado', url: 'https://ok.local' });
+    expect(sent.bookmarks[0].icon).toContain('/png/');
+  });
+
+  it('se puede quitar el icono de un enlace editado', async () => {
+    (document.querySelector('.bookmark-edit') as HTMLButtonElement).click();
+    await flush();
+    const popup = document.querySelector('.bookmark-popup') as HTMLElement;
+    expect(popup.querySelector('.icon-preview img')).toBeTruthy();
+
+    const clear = [...popup.querySelectorAll('button')].find((b) => b.textContent === 'Quitar icono') as HTMLButtonElement;
+    clear.click();
+    popup.dispatchEvent(new Event('submit', { cancelable: true }));
+    await flush();
+
+    expect(document.querySelector('.bookmark-ico img')).toBeNull();
+    expect(document.querySelector('.bookmark-ico')?.textContent).toBe('ED');
   });
 });
